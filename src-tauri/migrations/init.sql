@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     color TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 1, -- Добавили приоритет
     created_at INTEGER NOT NULL
 );
 
@@ -14,7 +15,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     status INTEGER NOT NULL CHECK (status IN (0, 1, 2)) DEFAULT 0,
     created_at INTEGER NOT NULL,
     completed_at INTEGER,
-    deadline INTEGER, -- Новое поле для дедлайна (timestamp)
+    deadline INTEGER,
     estimated_minutes INTEGER,
     actual_minutes INTEGER,
     tags TEXT,

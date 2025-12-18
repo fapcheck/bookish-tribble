@@ -2,13 +2,12 @@
 
 use tauri::{Manager, WindowEvent, State};
 use std::sync::Mutex;
-// use std::path::PathBuf;
 
 mod database;
 mod models;
 
 use database::AppDatabase;
-use models::{Task, NewTask, Project, UserStats, AppSettings, Status};
+use models::{Task, NewTask, Project, UserStats, AppSettings, Status, Priority};
 
 struct AppState {
     db: Mutex<AppDatabase>,
@@ -26,11 +25,25 @@ async fn get_projects(state: State<'_, AppState>) -> Result<Vec<Project>, String
 async fn add_project(
     state: State<'_, AppState>, 
     name: String, 
-    color: String
+    color: String,
+    priority: String
 ) -> Result<Project, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let id = uuid::Uuid::new_v4().to_string();
-    db.add_project(id, name, color).map_err(|e| e.to_string())
+    
+    let priority_enum = match priority.as_str() {
+        "high" => Priority::High,
+        "low" => Priority::Low,
+        _ => Priority::Normal,
+    };
+
+    db.add_project(id, name, color, priority_enum).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn edit_project(state: State<'_, AppState>, id: String, name: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_project(&id, name).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -62,6 +75,29 @@ async fn add_task(state: State<'_, AppState>, new_task: NewTask) -> Result<Task,
 }
 
 #[tauri::command]
+async fn edit_task_title(state: State<'_, AppState>, id: String, title: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_task_title(&id, title).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_task_priority(state: State<'_, AppState>, id: String, priority: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let priority_enum = match priority.as_str() {
+        "high" => Priority::High,
+        "low" => Priority::Low,
+        _ => Priority::Normal,
+    };
+    db.update_task_priority(&id, priority_enum).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_task_deadline(state: State<'_, AppState>, id: String, deadline: Option<i64>) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_task_deadline(&id, deadline).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn update_task_status(
     state: State<'_, AppState>, 
     task_id: String, 
@@ -78,7 +114,6 @@ async fn update_task_status(
         .map_err(|e| e.to_string())
 }
 
-// Исправленная функция: было 'async fnQA_delete_task', стало правильно 'async fn delete_task'
 #[tauri::command]
 async fn delete_task(state: State<'_, AppState>, task_id: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
@@ -151,11 +186,15 @@ fn main() {
             add_task,
             update_task_status,
             delete_task,
+            edit_task_title,
+            update_task_priority, // new
+            update_task_deadline, // new
             get_stats,
             get_settings,
             save_settings,
             get_projects,
             add_project,
+            edit_project,
             delete_project,
             start_focus_session,
             complete_focus_session,

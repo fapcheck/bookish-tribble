@@ -5,6 +5,7 @@ export interface Project {
   id: string;
   name: string;
   color: string;
+  priority: 'low' | 'normal' | 'high';
   created_at: number;
 }
 
@@ -17,7 +18,7 @@ export interface Task {
   status: 'todo' | 'doing' | 'done';
   created_at: number;
   completed_at?: number;
-  deadline?: number; // timestamp
+  deadline?: number;
   estimated_minutes?: number;
   actual_minutes?: number;
   tags: string[];
@@ -53,7 +54,7 @@ export function useDatabase() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Загрузка данных
+  // Load Data
   const loadData = useCallback(async () => {
     try {
       const [tasksData, projectsData, statsData] = await Promise.all([
@@ -76,13 +77,29 @@ export function useDatabase() {
   }, [loadData]);
 
   // Projects
-  const addProject = async (name: string, color: string) => {
+  const addProject = async (name: string, color: string, priority: 'low' | 'normal' | 'high') => {
     try {
-      const newProject = await invoke<Project>('add_project', { name, color });
-      setProjects(prev => [newProject, ...prev]);
+      const newProject = await invoke<Project>('add_project', { name, color, priority });
+      setProjects(prev => {
+         const list = [newProject, ...prev];
+         return list.sort((a, b) => {
+             const weight = { high: 3, normal: 2, low: 1 };
+             return weight[b.priority] - weight[a.priority];
+         });
+      });
       return newProject;
     } catch (error) {
       console.error('Failed to add project:', error);
+      throw error;
+    }
+  };
+
+  const editProject = async (id: string, name: string) => {
+    try {
+      await invoke('edit_project', { id, name });
+      setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+    } catch (error) {
+      console.error('Failed to edit project:', error);
       throw error;
     }
   };
@@ -131,6 +148,36 @@ export function useDatabase() {
     }
   };
 
+  const editTaskTitle = async (id: string, title: string) => {
+    try {
+      await invoke('edit_task_title', { id, title });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, title } : t));
+    } catch (error) {
+      console.error('Failed to edit task title:', error);
+      throw error;
+    }
+  };
+
+  const updateTaskPriority = async (id: string, priority: 'low' | 'normal' | 'high') => {
+    try {
+      await invoke('update_task_priority', { id, priority });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, priority } : t));
+    } catch (error) {
+      console.error('Failed to update task priority:', error);
+      throw error;
+    }
+  };
+
+  const updateTaskDeadline = async (id: string, deadline: number | null) => {
+    try {
+      await invoke('update_task_deadline', { id, deadline });
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, deadline: deadline || undefined } : t));
+    } catch (error) {
+      console.error('Failed to update task deadline:', error);
+      throw error;
+    }
+  };
+
   const updateTaskStatus = async (taskId: string, status: 'todo' | 'doing' | 'done') => {
     try {
       await invoke('update_task_status', { taskId, newStatus: status });
@@ -162,7 +209,6 @@ export function useDatabase() {
   const completeFocusSession = async (taskId: string, durationMinutes: number) => {
       try {
           await invoke('complete_focus_session', { sessionId: "temp", durationMinutes });
-          // Note: In real logic, we'd start a session first. For now we just assume sync.
           loadData();
       } catch (e) {
           console.error(e);
@@ -178,8 +224,12 @@ export function useDatabase() {
     stats,
     isLoaded,
     addProject,
+    editProject,
     deleteProject,
     addTask,
+    editTaskTitle,
+    updateTaskPriority, // new
+    updateTaskDeadline, // new
     updateTaskStatus,
     deleteTask,
     toggleWindow,

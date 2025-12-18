@@ -45,6 +45,7 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub color: String,
+    pub priority: Priority, // Добавили приоритет
     pub created_at: i64,
 }
 
@@ -58,7 +59,7 @@ pub struct Task {
     pub status: Status,
     pub created_at: i64,
     pub completed_at: Option<i64>,
-    pub deadline: Option<i64>, // Новое поле
+    pub deadline: Option<i64>,
     pub estimated_minutes: Option<u32>,
     pub actual_minutes: Option<u32>,
     pub tags: Vec<String>,
@@ -73,7 +74,7 @@ pub struct NewTask {
     pub priority: Priority,
     pub status: Status,
     pub created_at: i64,
-    pub deadline: Option<i64>, // Новое поле
+    pub deadline: Option<i64>,
     pub estimated_minutes: Option<u32>,
     pub actual_minutes: Option<u32>,
     pub tags: Vec<String>,
