@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[repr(i32)]
+#[serde(rename_all = "lowercase")]
 pub enum Priority {
     Low = 0,
     Normal = 1,
@@ -18,18 +18,11 @@ impl Priority {
             _ => Priority::Normal,
         }
     }
-    
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            Priority::Low => "low",
-            Priority::Normal => "normal", 
-            Priority::High => "high",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[repr(i32)]
+#[serde(rename_all = "lowercase")]
 pub enum Status {
     Todo = 0,
     Doing = 1,
@@ -45,25 +38,27 @@ impl Status {
             _ => Status::Todo,
         }
     }
-    
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            Status::Todo => "todo",
-            Status::Doing => "doing",
-            Status::Done => "done",
-        }
-    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Project {
+    pub id: String,
+    pub name: String,
+    pub color: String,
+    pub created_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
+    pub project_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
     pub priority: Priority,
     pub status: Status,
     pub created_at: i64,
     pub completed_at: Option<i64>,
+    pub deadline: Option<i64>, // Новое поле
     pub estimated_minutes: Option<u32>,
     pub actual_minutes: Option<u32>,
     pub tags: Vec<String>,
@@ -72,33 +67,16 @@ pub struct Task {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewTask {
     pub id: String,
+    pub project_id: Option<String>,
     pub title: String,
     pub description: Option<String>,
     pub priority: Priority,
     pub status: Status,
     pub created_at: i64,
+    pub deadline: Option<i64>, // Новое поле
     pub estimated_minutes: Option<u32>,
+    pub actual_minutes: Option<u32>,
     pub tags: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FocusSession {
-    pub id: String,
-    pub task_id: String,
-    pub duration_minutes: u32,
-    pub completed: bool,
-    pub started_at: i64,
-    pub ended_at: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewFocusSession {
-    pub id: String,
-    pub task_id: String,
-    pub duration_minutes: u32,
-    pub completed: bool,
-    pub started_at: i64,
-    pub ended_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
