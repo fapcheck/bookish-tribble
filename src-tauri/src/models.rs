@@ -45,8 +45,13 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub color: String,
+<<<<<<< HEAD
     pub priority: Priority,
     pub created_at: i64, // ms
+=======
+    pub priority: Priority, // Добавили приоритет
+    pub created_at: i64,
+>>>>>>> origin/main
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +62,7 @@ pub struct Task {
     pub description: Option<String>,
     pub priority: Priority,
     pub status: Status,
+<<<<<<< HEAD
     pub created_at: i64, // ms
     pub completed_at: Option<i64>, // ms
     pub deadline: Option<i64>, // ms
@@ -67,6 +73,14 @@ pub struct Task {
     // NEW reminders
     pub remind_at: Option<i64>,   // ms
     pub reminded_at: Option<i64>, // ms
+=======
+    pub created_at: i64,
+    pub completed_at: Option<i64>,
+    pub deadline: Option<i64>,
+    pub estimated_minutes: Option<u32>,
+    pub actual_minutes: Option<u32>,
+    pub tags: Vec<String>,
+>>>>>>> origin/main
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +91,7 @@ pub struct NewTask {
     pub description: Option<String>,
     pub priority: Priority,
     pub status: Status,
+<<<<<<< HEAD
     pub created_at: i64, // ms
     pub deadline: Option<i64>, // ms
     pub estimated_minutes: Option<u32>,
@@ -96,22 +111,35 @@ pub struct FocusSession {
     pub completed: bool,
     pub started_at: i64, // ms
     pub ended_at: Option<i64>, // ms
+=======
+    pub created_at: i64,
+    pub deadline: Option<i64>,
+    pub estimated_minutes: Option<u32>,
+    pub actual_minutes: Option<u32>,
+    pub tags: Vec<String>,
+>>>>>>> origin/main
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserStats {
     pub total_tasks: i32,
     pub completed_tasks: i32,
+<<<<<<< HEAD
 
     pub completed_today: i32,
     pub completed_week: i32,
     pub best_streak: u32,
 
+=======
+>>>>>>> origin/main
     pub total_focus_time: u32,
     pub tasks_today: i32,
     pub tasks_week: i32,
     pub current_streak: u32,
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
     pub level: u32,
     pub points: i32,
 }
@@ -128,9 +156,12 @@ pub struct AppSettings {
     pub global_shortcuts_enabled: bool,
     pub start_minimized: bool,
     pub close_to_tray: bool,
+<<<<<<< HEAD
 
     // NEW: default reminder lead time in minutes
     pub reminder_lead_minutes: u32,
+=======
+>>>>>>> origin/main
 }
 
 impl Default for AppSettings {
@@ -146,7 +177,10 @@ impl Default for AppSettings {
             global_shortcuts_enabled: true,
             start_minimized: false,
             close_to_tray: true,
+<<<<<<< HEAD
             reminder_lead_minutes: 30,
+=======
+>>>>>>> origin/main
         }
     }
 }

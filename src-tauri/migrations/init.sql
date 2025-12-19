@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 -- FocusFlow base schema (safe to run on old DBs)
 -- All *_at fields are UNIX milliseconds (ms)
 
@@ -6,11 +7,17 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at INTEGER NOT NULL
 );
 
+=======
+>>>>>>> origin/main
 CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     color TEXT NOT NULL,
+<<<<<<< HEAD
     priority INTEGER NOT NULL DEFAULT 1,
+=======
+    priority INTEGER NOT NULL DEFAULT 1, -- Добавили приоритет
+>>>>>>> origin/main
     created_at INTEGER NOT NULL
 );
 
@@ -40,6 +47,7 @@ CREATE TABLE IF NOT EXISTS focus_sessions (
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
+<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     pomodoro_length INTEGER NOT NULL,
@@ -59,3 +67,16 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline);
+=======
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline);
+
+CREATE TRIGGER IF NOT EXISTS update_task_completed_at
+AFTER UPDATE OF status ON tasks
+WHEN NEW.status = 2 AND OLD.status != 2
+BEGIN
+    UPDATE tasks SET completed_at = strftime('%s', 'now') WHERE id = NEW.id;
+END;
+>>>>>>> origin/main

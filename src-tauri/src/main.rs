@@ -1,18 +1,28 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+<<<<<<< HEAD
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WindowEvent};
+=======
+use tauri::{Manager, WindowEvent, State};
+use std::sync::Mutex;
+>>>>>>> origin/main
 
 mod database;
 mod models;
 
 use database::AppDatabase;
+<<<<<<< HEAD
 use models::{AppSettings, NewTask, Priority, Project, Status, Task, UserStats};
+=======
+use models::{Task, NewTask, Project, UserStats, AppSettings, Status, Priority};
+>>>>>>> origin/main
 
 struct AppState {
     db: Mutex<AppDatabase>,
 }
 
+<<<<<<< HEAD
 #[derive(serde::Serialize, Clone)]
 struct DataChanged {
     entity: &'static str,
@@ -137,6 +147,9 @@ async fn snooze_task_reminder(
 }
 
 // --- PROJECTS ---
+=======
+// --- PROJECT COMMANDS ---
+>>>>>>> origin/main
 
 #[tauri::command]
 async fn get_projects(state: State<'_, AppState>) -> Result<Vec<Project>, String> {
@@ -145,16 +158,29 @@ async fn get_projects(state: State<'_, AppState>) -> Result<Vec<Project>, String
 }
 
 #[tauri::command]
+<<<<<<< HEAD
 async fn add_project(state: State<'_, AppState>, app: tauri::AppHandle, name: String, color: String, priority: String) -> Result<Project, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let id = uuid::Uuid::new_v4().to_string();
 
+=======
+async fn add_project(
+    state: State<'_, AppState>, 
+    name: String, 
+    color: String,
+    priority: String
+) -> Result<Project, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    
+>>>>>>> origin/main
     let priority_enum = match priority.as_str() {
         "high" => Priority::High,
         "low" => Priority::Low,
         _ => Priority::Normal,
     };
 
+<<<<<<< HEAD
     let project = db.add_project(id.clone(), name, color, priority_enum).map_err(|e| e.to_string())?;
     emit_data_changed(&app, "projects", "add", Some(id));
     emit_data_changed(&app, "stats", "refresh", None);
@@ -171,12 +197,60 @@ async fn edit_project(state: State<'_, AppState>, app: tauri::AppHandle, id: Str
 
 #[tauri::command]
 async fn update_project_priority(state: State<'_, AppState>, app: tauri::AppHandle, id: String, priority: String) -> Result<(), String> {
+=======
+    db.add_project(id, name, color, priority_enum).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn edit_project(state: State<'_, AppState>, id: String, name: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_project(&id, name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn delete_project(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_project(&id).map_err(|e| e.to_string())
+}
+
+// --- TASK COMMANDS ---
+
+#[tauri::command]
+async fn get_tasks(
+    state: State<'_, AppState>, 
+    limit: Option<i32>, 
+    status_filter: Option<i32>,
+    project_filter: Option<String>
+) -> Result<Vec<Task>, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let status_enum = status_filter.map(|s| Status::from_int(s));
+    
+    db.get_tasks(limit, status_enum, project_filter)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn add_task(state: State<'_, AppState>, new_task: NewTask) -> Result<Task, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.add_task(&new_task).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn edit_task_title(state: State<'_, AppState>, id: String, title: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_task_title(&id, title).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_task_priority(state: State<'_, AppState>, id: String, priority: String) -> Result<(), String> {
+>>>>>>> origin/main
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let priority_enum = match priority.as_str() {
         "high" => Priority::High,
         "low" => Priority::Low,
         _ => Priority::Normal,
     };
+<<<<<<< HEAD
     db.update_project_priority(&id, priority_enum).map_err(|e| e.to_string())?;
     emit_data_changed(&app, "projects", "edit", Some(id));
     Ok(())
@@ -241,6 +315,23 @@ async fn update_task_deadline(state: State<'_, AppState>, app: tauri::AppHandle,
 
 #[tauri::command]
 async fn update_task_status(state: State<'_, AppState>, app: tauri::AppHandle, task_id: String, new_status: String) -> Result<(), String> {
+=======
+    db.update_task_priority(&id, priority_enum).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_task_deadline(state: State<'_, AppState>, id: String, deadline: Option<i64>) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.update_task_deadline(&id, deadline).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_task_status(
+    state: State<'_, AppState>, 
+    task_id: String, 
+    new_status: String
+) -> Result<(), String> {
+>>>>>>> origin/main
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let status_enum = match new_status.as_str() {
         "todo" => Status::Todo,
@@ -248,6 +339,7 @@ async fn update_task_status(state: State<'_, AppState>, app: tauri::AppHandle, t
         "done" => Status::Done,
         _ => Status::Todo,
     };
+<<<<<<< HEAD
     db.update_task_status(&task_id, status_enum).map_err(|e| e.to_string())?;
     emit_data_changed(&app, "tasks", "status", Some(task_id));
     emit_data_changed(&app, "stats", "refresh", None);
@@ -264,12 +356,25 @@ async fn delete_task(state: State<'_, AppState>, app: tauri::AppHandle, task_id:
 }
 
 // --- STATS ---
+=======
+    db.update_task_status(&task_id, status_enum)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn delete_task(state: State<'_, AppState>, task_id: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_task(&task_id).map_err(|e| e.to_string())
+}
+
+>>>>>>> origin/main
 #[tauri::command]
 async fn get_stats(state: State<'_, AppState>) -> Result<UserStats, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     db.get_stats().map_err(|e| e.to_string())
 }
 
+<<<<<<< HEAD
 // --- FOCUS ---
 #[tauri::command]
 async fn start_focus_session(state: State<'_, AppState>, task_id: String) -> Result<String, String> {
@@ -282,10 +387,20 @@ async fn complete_focus_session(state: State<'_, AppState>, app: tauri::AppHandl
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     db.finish_focus_session(session_id, duration_minutes, true).map_err(|e| e.to_string())?;
     emit_data_changed(&app, "stats", "refresh", None);
+=======
+#[tauri::command]
+async fn get_settings() -> Result<AppSettings, String> {
+    Ok(AppSettings::default())
+}
+
+#[tauri::command]
+async fn save_settings(_settings: AppSettings) -> Result<(), String> {
+>>>>>>> origin/main
     Ok(())
 }
 
 #[tauri::command]
+<<<<<<< HEAD
 async fn cancel_focus_session(state: State<'_, AppState>, app: tauri::AppHandle, session_id: String, duration_minutes: i32) -> Result<(), String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     db.finish_focus_session(session_id, duration_minutes, false).map_err(|e| e.to_string())?;
@@ -294,6 +409,17 @@ async fn cancel_focus_session(state: State<'_, AppState>, app: tauri::AppHandle,
 }
 
 // --- WINDOW ---
+=======
+async fn start_focus_session(task_id: String) -> Result<String, String> {
+    Ok(format!("session_for_{}", task_id))
+}
+
+#[tauri::command]
+async fn complete_focus_session(_session_id: String, _duration_minutes: i32) -> Result<(), String> {
+    Ok(())
+}
+
+>>>>>>> origin/main
 #[tauri::command]
 async fn toggle_window(window: tauri::Window) {
     if window.is_visible().unwrap_or(false) {
@@ -311,11 +437,15 @@ async fn minimize_window(window: tauri::Window) {
 
 fn main() {
     tauri::Builder::default()
+<<<<<<< HEAD
         .plugin(tauri_plugin_opener::init())
+=======
+>>>>>>> origin/main
         .setup(|app| {
             let app_handle = app.handle();
             let app_dir = app_handle.path().app_data_dir().expect("failed to get app data dir");
             let db = AppDatabase::new(app_dir).expect("failed to initialize database");
+<<<<<<< HEAD
 
             println!("[FocusFlow] DB path: {}", db.db_path().display());
 
@@ -361,6 +491,11 @@ fn main() {
                         },
                     );
                 }
+=======
+            
+            app.manage(AppState {
+                db: Mutex::new(db),
+>>>>>>> origin/main
             });
 
             Ok(())
@@ -373,6 +508,7 @@ fn main() {
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
+<<<<<<< HEAD
             db_health,
             get_completion_series,
             // settings
@@ -382,11 +518,14 @@ fn main() {
             set_task_remind_at,
             snooze_task_reminder,
             // tasks
+=======
+>>>>>>> origin/main
             get_tasks,
             add_task,
             update_task_status,
             delete_task,
             edit_task_title,
+<<<<<<< HEAD
             update_task_priority,
             update_task_deadline,
             // stats
@@ -402,6 +541,19 @@ fn main() {
             complete_focus_session,
             cancel_focus_session,
             // window
+=======
+            update_task_priority, // new
+            update_task_deadline, // new
+            get_stats,
+            get_settings,
+            save_settings,
+            get_projects,
+            add_project,
+            edit_project,
+            delete_project,
+            start_focus_session,
+            complete_focus_session,
+>>>>>>> origin/main
             toggle_window,
             minimize_window
         ])
