@@ -21,7 +21,12 @@ struct DataChanged {
     id: Option<String>,
 }
 
-fn emit_data_changed(app: &tauri::AppHandle, entity: &'static str, action: &'static str, id: Option<String>) {
+fn emit_data_changed(
+    app: &tauri::AppHandle,
+    entity: &'static str,
+    action: &'static str,
+    id: Option<String>,
+) {
     let _ = app.emit("data:changed", DataChanged { entity, action, id });
 }
 
@@ -45,7 +50,7 @@ struct DbHealth {
 #[tauri::command]
 async fn db_health(state: State<'_, AppState>) -> Result<DbHealth, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
-    let conn = db.get_connection()?;
+    let conn = db.get_connection();
 
     let mut stmt = conn
         .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
@@ -86,9 +91,7 @@ struct ExportBundle {
 async fn export_data(state: State<'_, AppState>) -> Result<ExportBundle, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let projects = db.get_projects().map_err(|e| e.to_string())?;
-    let tasks = db
-        .get_tasks(None, None, None)
-        .map_err(|e| e.to_string())?;
+    let tasks = db.get_tasks(None, None, None).map_err(|e| e.to_string())?;
     let settings = db.get_settings().map_err(|e| e.to_string())?;
 
     Ok(ExportBundle {
@@ -109,7 +112,10 @@ struct CompletionDay {
 }
 
 #[tauri::command]
-async fn get_completion_series(state: State<'_, AppState>, days: i32) -> Result<Vec<CompletionDay>, String> {
+async fn get_completion_series(
+    state: State<'_, AppState>,
+    days: i32,
+) -> Result<Vec<CompletionDay>, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let rows = db.get_completion_series(days).map_err(|e| e.to_string())?;
     Ok(rows
@@ -148,7 +154,8 @@ async fn set_task_remind_at(
     remind_at: Option<i64>,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
-    db.set_task_remind_at(&id, remind_at).map_err(|e| e.to_string())?;
+    db.set_task_remind_at(&id, remind_at)
+        .map_err(|e| e.to_string())?;
     emit_data_changed(&app, "tasks", "edit", Some(id));
     Ok(())
 }
@@ -283,7 +290,8 @@ async fn edit_task_title(
     title: String,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
-    db.update_task_title(&id, title).map_err(|e| e.to_string())?;
+    db.update_task_title(&id, title)
+        .map_err(|e| e.to_string())?;
     emit_data_changed(&app, "tasks", "edit", Some(id));
     Ok(())
 }
@@ -356,7 +364,7 @@ async fn update_task_status(
     task_id: String,
     new_status: String,
 ) -> Result<(), String> {
-    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let mut db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let status_enum = match new_status.as_str() {
         "todo" => Status::Todo,
         "doing" => Status::Doing,
@@ -394,7 +402,10 @@ async fn get_stats(state: State<'_, AppState>) -> Result<UserStats, String> {
 // --- FOCUS ---
 
 #[tauri::command]
-async fn start_focus_session(state: State<'_, AppState>, task_id: String) -> Result<String, String> {
+async fn start_focus_session(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<String, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     db.start_focus_session(task_id).map_err(|e| e.to_string())
 }
@@ -467,7 +478,7 @@ fn main() {
                 let now_ms = chrono::Utc::now().timestamp_millis();
                 let state = app_handle2.state::<AppState>();
 
-                let db_guard = match state.db.lock() {
+                let mut db_guard = match state.db.lock() {
                     Ok(g) => g,
                     Err(_) => continue,
                 };
@@ -515,6 +526,7 @@ fn main() {
             db_health,
             // export
             export_data,
+            import_data,
             // calendar series
             get_completion_series,
             // settings
