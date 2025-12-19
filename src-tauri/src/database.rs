@@ -298,7 +298,19 @@ impl AppDatabase {
         conn.execute(
             "INSERT INTO settings (id, pomodoro_length, short_break_length, long_break_length, pomodoros_until_long_break, sound_enabled, auto_start_breaks, auto_start_pomodoros, global_shortcuts_enabled, start_minimized, close_to_tray, reminder_lead_minutes, updated_at)
              VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
-             ON CONFLICT(id) DO UPDATE SET pomodoro_length=excluded.pomodoro_length, updated_at=excluded.updated_at",
+             ON CONFLICT(id) DO UPDATE SET 
+                pomodoro_length=excluded.pomodoro_length, 
+                short_break_length=excluded.short_break_length,
+                long_break_length=excluded.long_break_length,
+                pomodoros_until_long_break=excluded.pomodoros_until_long_break,
+                sound_enabled=excluded.sound_enabled,
+                auto_start_breaks=excluded.auto_start_breaks,
+                auto_start_pomodoros=excluded.auto_start_pomodoros,
+                global_shortcuts_enabled=excluded.global_shortcuts_enabled,
+                start_minimized=excluded.start_minimized,
+                close_to_tray=excluded.close_to_tray,
+                reminder_lead_minutes=excluded.reminder_lead_minutes,
+                updated_at=excluded.updated_at",
             params![settings.pomodoro_length, settings.short_break_length, settings.long_break_length, settings.pomodoros_until_long_break, settings.sound_enabled, settings.auto_start_breaks, settings.auto_start_pomodoros, settings.global_shortcuts_enabled, settings.start_minimized, settings.close_to_tray, settings.reminder_lead_minutes, now]
         ).map_err(|e| e.to_string())?;
         Ok(())
@@ -384,11 +396,17 @@ impl AppDatabase {
     ) -> Result<Vec<Task>, String> {
         let conn = &self.conn;
         let mut query = "SELECT id, project_id, title, description, priority, status, created_at, completed_at, deadline, estimated_minutes, actual_minutes, tags, remind_at, reminded_at, repeat_mode, repeat_days_mask FROM tasks WHERE 1=1".to_string();
-        if status.is_some() {
+
+        // Build dynamic parameters
+        let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+        if let Some(s) = &status {
             query.push_str(" AND status = ?");
+            params_vec.push(Box::new(*s as i32));
         }
-        if project_id.is_some() {
+        if let Some(pid) = &project_id {
             query.push_str(" AND project_id = ?");
+            params_vec.push(Box::new(pid.clone()));
         }
         query.push_str(" ORDER BY created_at DESC");
         if let Some(l) = limit {
@@ -396,9 +414,13 @@ impl AppDatabase {
         }
 
         let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
-        // Упрощенный маппинг параметров для краткости
+
+        // Convert params to references for rusqlite
+        let params_refs: Vec<&dyn rusqlite::ToSql> =
+            params_vec.iter().map(|p| p.as_ref()).collect();
+
         let rows = stmt
-            .query_map([], |row| {
+            .query_map(params_refs.as_slice(), |row| {
                 let tags_raw: String = row.get(11)?;
                 Ok(Task {
                     id: row.get(0)?,

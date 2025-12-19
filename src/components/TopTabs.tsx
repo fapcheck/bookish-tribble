@@ -2,6 +2,7 @@ import React from "react";
 import { BarChart3, Calendar, ListChecks, Settings } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
+import ImportBackupButton from "./ImportBackupButton";
 
 export default function TopTabs({
   view,
@@ -42,7 +43,8 @@ export default function TopTabs({
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1">
+        <ImportBackupButton />
         <ExportBackupButton />
       </div>
     </header>
@@ -63,11 +65,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium ${
-        active
+      className={`px-3 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium ${active
           ? "bg-slate-800 border-slate-600 text-white"
           : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-      }`}
+        }`}
     >
       {icon}
       {label}

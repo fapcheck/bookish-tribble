@@ -114,6 +114,10 @@ export function export_data() {
   return invoke<ExportBundle>("export_data");
 }
 
+export function import_data(bundleJson: string) {
+  return invoke<void>("import_data", { bundleJson });
+}
+
 // ---- Calendar series ----
 export function get_completion_series(days: number) {
   return invoke<CompletionDay[]>("get_completion_series", { days });
