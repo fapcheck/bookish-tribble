@@ -1,5 +1,4 @@
-import React from "react";
-import { Calendar, Coffee, Plus, Repeat, Sparkles, Tag, Zap } from "lucide-react";
+import { Calendar, Coffee, Plus, Sparkles, Tag, Zap } from "lucide-react";
 import type { Priority } from "../types/ui";
 
 export default function AddTaskForm({
@@ -17,15 +16,13 @@ export default function AddTaskForm({
   setDeadline,
   tags,
   setTags,
-  repeatEveryDays,
-  setRepeatEveryDays,
 }: {
   projectId: string;
   accentColor?: string;
   isActive: boolean;
   onOpen: () => void;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent, projectId: string | null) => void;
+  onSubmit: (e: React.FormEvent, projectId: string | null) => void | Promise<void>;
   title: string;
   setTitle: (v: string) => void;
   priority: Priority;
@@ -34,8 +31,6 @@ export default function AddTaskForm({
   setDeadline: (v: string) => void;
   tags: string;
   setTags: (v: string) => void;
-  repeatEveryDays: number | null;
-  setRepeatEveryDays: (v: number | null) => void;
 }) {
   if (!isActive) {
     return (
@@ -49,11 +44,6 @@ export default function AddTaskForm({
       </div>
     );
   }
-
-  const cycleRepeat = () => {
-    // Off -> Daily -> Off
-    setRepeatEveryDays(repeatEveryDays ? null : 1);
-  };
 
   return (
     <div className="mt-3 p-3 bg-[#020617]/50 rounded-xl border border-slate-700/50 animate-in fade-in slide-in-from-top-1">
@@ -89,20 +79,6 @@ export default function AddTaskForm({
                 </button>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={cycleRepeat}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-md border transition-colors ${
-                repeatEveryDays
-                  ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-200"
-                  : "bg-[#1e293b] border-slate-700 text-slate-500 hover:text-slate-300"
-              }`}
-              title="Repeat daily"
-            >
-              <Repeat size={14} />
-              <span className="text-[11px]">{repeatEveryDays ? "Daily" : "No repeat"}</span>
-            </button>
 
             <div className="relative group">
               <input

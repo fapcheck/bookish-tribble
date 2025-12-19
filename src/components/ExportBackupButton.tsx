@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Download } from "lucide-react";
 import * as tauri from "../lib/tauri";
 
 function safeStamp(d: Date) {
-  // 2025-12-19_14-03-09
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(
     d.getMinutes()

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Calendar, Check, SkipForward, Tag } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Check, SkipForward } from "lucide-react";
 import type { Task } from "../hooks/useDatabase";
 import * as tauri from "../lib/tauri";
 
@@ -27,15 +27,12 @@ export default function FocusView({
   const startedAtRef = useRef<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
 
-  // Start a focus session for the current task
   useEffect(() => {
     let timer: number | null = null;
     let cancelled = false;
 
     const start = async () => {
       if (!currentTask) return;
-
-      // If we already have a session for this task, do nothing
       if (sessionIdRef.current) return;
 
       const sid = await tauri.start_focus_session(currentTask.id);
@@ -56,9 +53,8 @@ export default function FocusView({
       cancelled = true;
       if (timer) window.clearInterval(timer);
     };
-  }, [currentTask?.id]); // start when task changes
+  }, [currentTask?.id]);
 
-  // When we skip/reset to a new task, cancel previous session cleanly
   const cancelCurrentSession = async () => {
     const sid = sessionIdRef.current;
     const startedAt = startedAtRef.current;
@@ -85,7 +81,6 @@ export default function FocusView({
   };
 
   useEffect(() => {
-    // If we skipped everything but queue still has tasks, reset skips
     if (!currentTask && queue.length > 0 && skippedIds.length > 0) {
       setSkippedIds([]);
     }
@@ -156,22 +151,7 @@ export default function FocusView({
               В ФОКУСЕ • {msToClock(elapsedMs)}
             </div>
 
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">
-              {currentTask.title}
-            </h2>
-
-            <div className="flex items-center justify-center gap-3">
-              {currentTask.deadline && (
-                <div className="flex items-center gap-2 text-red-400 font-mono text-sm bg-red-950/30 px-3 py-1 rounded-full">
-                  <Calendar size={14} /> {new Date(currentTask.deadline).toLocaleDateString()}
-                </div>
-              )}
-              {currentTask.tags && currentTask.tags.length > 0 && (
-                <div className="flex items-center gap-2 text-slate-400 font-mono text-sm bg-slate-800 px-3 py-1 rounded-full">
-                  <Tag size={14} /> {currentTask.tags.join(", ")}
-                </div>
-              )}
-            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">{currentTask.title}</h2>
           </div>
 
           <div className="flex gap-4 justify-center items-center">

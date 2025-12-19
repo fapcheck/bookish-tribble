@@ -1,21 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Check, Clock, Pencil, Repeat, Tag, Trash2, Zap } from "lucide-react";
+import { Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
 import type { Priority } from "../types/ui";
 import type { Task } from "../hooks/useDatabase";
 import * as tauri from "../lib/tauri";
-
-const WEEKDAYS = [
-  { key: "Mon", label: "Mon", bit: 1 },
-  { key: "Tue", label: "Tue", bit: 2 },
-  { key: "Wed", label: "Wed", bit: 4 },
-  { key: "Thu", label: "Thu", bit: 8 },
-  { key: "Fri", label: "Fri", bit: 16 },
-  { key: "Sat", label: "Sat", bit: 32 },
-  { key: "Sun", label: "Sun", bit: 64 },
-] as const;
-
-const WEEKDAYS_MASK = 1 | 2 | 4 | 8 | 16; // Mon-Fri
 
 function tomorrowAt9LocalMs() {
   const d = new Date();
@@ -42,7 +30,6 @@ export default function TaskCard({
   onUpdatePriority,
   onUpdateDeadline,
   onUpdateTags,
-  onUpdateRepeat,
   accentColor,
 }: {
   task: Task;
@@ -52,7 +39,6 @@ export default function TaskCard({
   onUpdatePriority: (p: Priority) => void;
   onUpdateDeadline: (d: number | null) => void;
   onUpdateTags: (tags: string[]) => void;
-  onUpdateRepeat: (repeatMode: "daily" | "weekdays" | "custom" | null, repeatDaysMask: number | null) => void;
   accentColor?: string;
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -61,47 +47,12 @@ export default function TaskCard({
   const [isEditingDate, setIsEditingDate] = useState(false);
 
   const [reminderOpen, setReminderOpen] = useState(false);
-  
-  // Refs for closing menus on outside click
-  const cardRef = useRef<HTMLDivElement | null>(null);
   const reminderMenuRef = useRef<HTMLDivElement | null>(null);
-  const repeatMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [tagsDraft, setTagsDraft] = useState<string>("");
 
-  const [repeatOpen, setRepeatOpen] = useState(false);
-  const [repeatDraftMode, setRepeatDraftMode] = useState<"daily" | "weekdays" | "custom" | null>(
-    (task.repeat_mode as any) ?? null
-  );
-  const [repeatDraftMask, setRepeatDraftMask] = useState<number>(
-    typeof task.repeat_days_mask === "number" ? task.repeat_days_mask : WEEKDAYS_MASK
-  );
-
-  useEffect(() => {
-    setRepeatDraftMode((task.repeat_mode as any) ?? null);
-    setRepeatDraftMask(typeof task.repeat_days_mask === "number" ? task.repeat_days_mask : WEEKDAYS_MASK);
-  }, [task.repeat_mode, task.repeat_days_mask]);
-
-  // Handle click outside components
-  useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node | null;
-      if (!target) return;
-
-      // If click is inside either menu, ignore
-      if (reminderMenuRef.current?.contains(target)) return;
-      if (repeatMenuRef.current?.contains(target)) return;
-
-      // If click is inside the card but NOT inside a menu, or outside entirely, close menus
-      setReminderOpen(false);
-      setRepeatOpen(false);
-      setIsEditingTags(false);
-    };
-
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, []);
+  const [cardRefEl, setCardRefEl] = useState<HTMLDivElement | null>(null);
 
   const priorityStyles: Record<Priority, string> = {
     high: "text-red-400 bg-red-950/30 border-red-900/30",
@@ -112,7 +63,26 @@ export default function TaskCard({
 
   const hasReminder = useMemo(() => !!task.remind_at, [task.remind_at]);
 
-  const elevated = reminderOpen || isEditingTags || isEditingDate || isEditingTitle || repeatOpen;
+  const elevated = reminderOpen || isEditingTags || isEditingDate || isEditingTitle;
+
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+
+      if (reminderMenuRef.current?.contains(target)) return;
+
+      if (cardRefEl?.contains(target)) {
+        setReminderOpen(false);
+        return;
+      }
+
+      setReminderOpen(false);
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [cardRefEl]);
 
   const handleSaveTitle = () => {
     const next = editTitleValue.trim();
@@ -132,9 +102,19 @@ export default function TaskCard({
       setIsEditingDate(false);
       return;
     }
+
     const base = task.deadline ? new Date(task.deadline) : new Date();
     const picked = new Date(val);
-    const out = new Date(picked.getFullYear(), picked.getMonth(), picked.getDate(), base.getHours() || 9, base.getMinutes() || 0, 0, 0);
+    const out = new Date(
+      picked.getFullYear(),
+      picked.getMonth(),
+      picked.getDate(),
+      base.getHours() || 9,
+      base.getMinutes() || 0,
+      0,
+      0
+    );
+
     onUpdateDeadline(out.getTime());
     setIsEditingDate(false);
   };
@@ -153,6 +133,9 @@ export default function TaskCard({
   const setReminderAt = async (ms: number | null) => {
     try {
       await tauri.set_task_remind_at(task.id, ms);
+    } catch (e) {
+      console.error("set_task_remind_at failed:", e);
+      alert("Failed to set reminder. See console.");
     } finally {
       setReminderOpen(false);
     }
@@ -161,6 +144,9 @@ export default function TaskCard({
   const snooze = async (minutes: number) => {
     try {
       await tauri.snooze_task_reminder(task.id, minutes);
+    } catch (e) {
+      console.error("snooze_task_reminder failed:", e);
+      alert("Failed to snooze. See console.");
     } finally {
       setReminderOpen(false);
     }
@@ -168,7 +154,7 @@ export default function TaskCard({
 
   return (
     <motion.div
-      ref={cardRef}
+      ref={setCardRefEl as any}
       layoutId={task.id}
       className={[
         "group bg-[#1e293b] hover:bg-[#283548] p-3 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all relative shadow-sm",
@@ -222,112 +208,6 @@ export default function TaskCard({
               {task.priority === "high" ? "High" : task.priority === "normal" ? "Normal" : "Low"}
             </button>
 
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRepeatOpen((v) => !v);
-                }}
-                className={`text-xs px-2 py-1 rounded-lg border flex items-center gap-1 transition-colors ${
-                  task.repeat_mode
-                    ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-200"
-                    : "bg-slate-800/40 border-slate-700 text-slate-400 hover:bg-slate-700"
-                }`}
-                title="Repeat settings"
-              >
-                <Repeat size={12} />
-                {task.repeat_mode ? (task.repeat_mode === "weekdays" ? "Weekdays" : task.repeat_mode === "custom" ? "Custom" : "Daily") : "Repeat"}
-              </button>
-
-              {repeatOpen && (
-                <div
-                  ref={repeatMenuRef}
-                  className="absolute z-[9999] mt-2 w-64 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl p-2"
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <div className="text-xs text-slate-500 px-2 py-1">Repeat</div>
-
-                  <MenuBtn
-                    label="Off"
-                    onClick={() => {
-                      onUpdateRepeat(null, null);
-                      setRepeatOpen(false);
-                    }}
-                  />
-                  <MenuBtn
-                    label="Daily"
-                    onClick={() => {
-                      onUpdateRepeat("daily", null);
-                      setRepeatOpen(false);
-                    }}
-                  />
-                  <MenuBtn
-                    label="Weekdays (Mon–Fri)"
-                    onClick={() => {
-                      onUpdateRepeat("weekdays", null);
-                      setRepeatOpen(false);
-                    }}
-                  />
-                  <MenuBtn
-                    label="Custom…"
-                    onClick={() => {
-                      setRepeatDraftMode("custom");
-                    }}
-                  />
-
-                  {repeatDraftMode === "custom" && (
-                    <div className="mt-2 px-1">
-                      <div className="text-[11px] text-slate-500 px-2 py-1">Select days</div>
-
-                      <div className="grid grid-cols-7 gap-1 px-1">
-                        {WEEKDAYS.map((d) => {
-                          const active = (repeatDraftMask & d.bit) !== 0;
-                          return (
-                            <button
-                              key={d.key}
-                              type="button"
-                              onClick={() => {
-                                setRepeatDraftMask((prev) => (active ? prev & ~d.bit : prev | d.bit));
-                              }}
-                              className={`px-2 py-1 rounded-md text-[11px] border transition-colors ${
-                                active
-                                  ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-200"
-                                  : "bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-800"
-                              }`}
-                            >
-                              {d.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex justify-end gap-2 mt-2 px-1">
-                        <button
-                          type="button"
-                          onClick={() => setRepeatOpen(false)}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-slate-900/30 border border-slate-800 text-slate-300 hover:bg-slate-800"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const mask = repeatDraftMask;
-                            if (!mask) return;
-                            onUpdateRepeat("custom", mask);
-                            setRepeatOpen(false);
-                          }}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {task.deadline || isEditingDate ? (
               isEditingDate ? (
                 <input
@@ -357,6 +237,7 @@ export default function TaskCard({
               )
             ) : null}
 
+            {/* Reminder chip */}
             {hasReminder ? (
               <button
                 onClick={(e) => {
@@ -367,9 +248,22 @@ export default function TaskCard({
                 title="Edit reminder"
               >
                 <Bell size={12} />
-                {task.remind_at ? new Date(task.remind_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "reminder"}
+                {task.remind_at
+                  ? new Date(task.remind_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "reminder"}
               </button>
-            ) : null}
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReminderOpen(true);
+                }}
+                className="text-xs px-2 py-1 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-400 flex items-center gap-1 hover:bg-slate-700 transition-colors"
+                title="Add reminder"
+              >
+                <Bell size={12} /> Remind
+              </button>
+            )}
 
             {(task.tags ?? []).map((tag, i) => (
               <button
@@ -398,7 +292,7 @@ export default function TaskCard({
           </div>
 
           {isEditingTags && (
-            <div className="mt-3 bg-slate-900/40 border border-slate-800 rounded-xl p-3" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mt-3 bg-slate-900/40 border border-slate-800 rounded-xl p-3">
               <div className="text-xs text-slate-500 mb-2">Tags (comma separated)</div>
               <input
                 autoFocus
@@ -436,18 +330,22 @@ export default function TaskCard({
             </button>
 
             {reminderOpen && (
-              <div 
+              <div
                 ref={reminderMenuRef}
                 className="absolute right-0 top-8 w-52 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl p-2 z-[9999]"
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="text-xs text-slate-500 px-2 py-1">Remind</div>
+
                 <MenuBtn onClick={() => setReminderAt(Date.now())} label="Now" />
                 <MenuBtn onClick={() => snooze(10)} label="In 10 minutes" />
                 <MenuBtn onClick={() => snooze(60)} label="In 1 hour" />
                 <MenuBtn onClick={() => setReminderAt(tomorrowAt9LocalMs())} label="Tomorrow 09:00" />
+
                 {task.deadline ? <MenuBtn onClick={() => setReminderAt(task.deadline ?? Date.now())} label="At deadline" /> : null}
+
                 <div className="h-px bg-white/10 my-2" />
+
                 <MenuBtn onClick={() => setReminderAt(null)} label="Clear reminder" danger />
               </div>
             )}
@@ -467,16 +365,18 @@ export default function TaskCard({
             </button>
           )}
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditingDate(true);
-            }}
-            className="text-slate-500 hover:text-white transition-all p-1"
-            title="Set deadline"
-          >
-            <Clock size={14} />
-          </button>
+          {!task.deadline && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingDate(true);
+              }}
+              className="text-slate-500 hover:text-white transition-all p-1"
+              title="Set deadline"
+            >
+              <Clock size={14} />
+            </button>
+          )}
 
           <button
             onClick={(e) => {
@@ -491,7 +391,12 @@ export default function TaskCard({
         </div>
       </div>
 
-      {accentColor && <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full opacity-70 pointer-events-none" style={{ backgroundColor: accentColor }} />}
+      {accentColor && (
+        <div
+          className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full opacity-70 pointer-events-none"
+          style={{ backgroundColor: accentColor }}
+        />
+      )}
     </motion.div>
   );
 }

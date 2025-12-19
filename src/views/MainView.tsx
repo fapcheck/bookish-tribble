@@ -1,5 +1,4 @@
-import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import { Coffee, CornerDownLeft, Flame, Inbox, Layers, Play, Plus, Sparkles, Zap, X } from "lucide-react";
 import type { Priority } from "../types/ui";
 import type { Project, Task } from "../hooks/useDatabase";
@@ -8,30 +7,7 @@ import TaskCard from "../components/TaskCard";
 import TrelloColumn from "../components/TrelloColumn";
 import { sortTasksForFocus } from "../utils/tasks";
 
-export default function MainView({
-  tasks,
-  projects,
-  isLoaded,
-  filterPriority,
-  setFilterPriority,
-  filterProject,
-  setFilterProject,
-  showCompleted,
-  setShowCompleted,
-  addTask,
-  editTaskTitle,
-  updateTaskPriority,
-  updateTaskDeadline,
-  updateTaskStatus,
-  updateTaskTags,
-  updateTaskRepeatEveryDays,
-  deleteTask,
-  addProject,
-  editProject,
-  updateProjectPriority,
-  deleteProject,
-  onStartFocus,
-}: {
+export default function MainView(props: {
   tasks: Task[];
   projects: Project[];
   isLoaded: boolean;
@@ -56,7 +32,6 @@ export default function MainView({
   updateTaskDeadline: (id: string, deadline: number | null) => Promise<void>;
   updateTaskStatus: (id: string, status: "todo" | "doing" | "done") => Promise<void>;
   updateTaskTags: (id: string, tags: string[]) => Promise<void>;
-  updateTaskRepeatEveryDays: (id: string, repeatEveryDays: number | null) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 
   addProject: (name: string, color: string, priority: Priority) => Promise<any>;
@@ -66,6 +41,32 @@ export default function MainView({
 
   onStartFocus: () => void;
 }) {
+  const {
+    tasks,
+    projects,
+    isLoaded,
+
+    filterPriority,
+    filterProject,
+    setFilterProject,
+    showCompleted,
+
+    addTask,
+    editTaskTitle,
+    updateTaskPriority,
+    updateTaskDeadline,
+    updateTaskStatus,
+    updateTaskTags,
+    deleteTask,
+
+    addProject,
+    editProject,
+    updateProjectPriority,
+    deleteProject,
+
+    onStartFocus,
+  } = props;
+
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectPriority, setNewProjectPriority] = useState<Priority>("normal");
@@ -80,7 +81,6 @@ export default function MainView({
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [newTaskTags, setNewTaskTags] = useState("");
 
-  // Keep filtering logic (buttons removed, but filters still apply if set elsewhere)
   const displayedTasks = useMemo(() => {
     let list = tasks;
     if (filterPriority !== "all") list = list.filter((t) => t.priority === filterPriority);
@@ -88,14 +88,12 @@ export default function MainView({
     return list;
   }, [tasks, filterPriority, showCompleted]);
 
+  const inboxTasks = useMemo(() => displayedTasks.filter((t) => !t.project_id), [displayedTasks]);
+
   const displayedProjects = useMemo(() => {
-    if (filterProject !== "all" && filterProject !== "inbox") {
-      return projects.filter((p) => p.id === filterProject);
-    }
+    if (filterProject !== "all" && filterProject !== "inbox") return projects.filter((p) => p.id === filterProject);
     return projects;
   }, [projects, filterProject]);
-
-  const inboxTasks = useMemo(() => displayedTasks.filter((t) => !t.project_id), [displayedTasks]);
 
   const focusQueue = useMemo(() => {
     let queue = tasks.filter((t) => t.status !== "done");
@@ -112,8 +110,7 @@ export default function MainView({
     return p ? p.name : "Входящие";
   }, [filterProject, projects]);
 
-  const cycleProjectPriority = (p: Priority): Priority =>
-    p === "low" ? "normal" : p === "normal" ? "high" : "low";
+  const cycleProjectPriority = (p: Priority): Priority => (p === "low" ? "normal" : p === "normal" ? "high" : "low");
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,9 +130,7 @@ export default function MainView({
     if (!quickAddTitle.trim()) return;
 
     let targetProjectId: string | undefined = undefined;
-    if (filterProject !== "all" && filterProject !== "inbox") {
-      targetProjectId = filterProject;
-    }
+    if (filterProject !== "all" && filterProject !== "inbox") targetProjectId = filterProject;
 
     await addTask(quickAddTitle, quickAddPriority, undefined, targetProjectId);
     setQuickAddTitle("");
@@ -158,23 +153,10 @@ export default function MainView({
     setAddingTaskToProject(null);
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="text-slate-500"
-        >
-          <Flame size={40} />
-        </motion.div>
-      </div>
-    );
-  }
+  if (!isLoaded) return null;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Project filters row (removed Filter + Completed toggle buttons) */}
       <div className="px-6 py-3 border-b border-white/5 flex gap-2 overflow-x-auto bg-[#020617]">
         <button
           onClick={() => setFilterProject("all")}
@@ -203,9 +185,7 @@ export default function MainView({
             key={p.id}
             onClick={() => setFilterProject(p.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap shrink-0 ${
-              filterProject === p.id
-                ? "bg-slate-800 text-white border-slate-600"
-                : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+              filterProject === p.id ? "bg-slate-800 text-white border-slate-600" : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
             }`}
           >
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
@@ -217,7 +197,6 @@ export default function MainView({
         ))}
       </div>
 
-      {/* Quick add */}
       <div className="px-6 py-4 bg-[#0f172a]/50 border-b border-white/5">
         <div className="max-w-[1600px] mx-auto">
           <form onSubmit={handleQuickAdd} className="relative flex items-center group">
@@ -239,9 +218,7 @@ export default function MainView({
                   type="button"
                   onClick={() => setQuickAddPriority(p)}
                   className={`p-1.5 rounded-lg transition-all ${
-                    quickAddPriority === p
-                      ? "bg-slate-700 text-white shadow-sm"
-                      : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
+                    quickAddPriority === p ? "bg-slate-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
                   }`}
                 >
                   {p === "high" ? (
@@ -264,7 +241,6 @@ export default function MainView({
         </div>
       </div>
 
-      {/* Main */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
         <div className="max-w-[1600px] mx-auto pb-20 space-y-8">
           {focusQueue.length > 0 && (
@@ -299,7 +275,6 @@ export default function MainView({
                       onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                       onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
                       onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
-                      onUpdateRepeatEveryDays={(n) => updateTaskRepeatEveryDays(task.id, n)}
                     />
                   ))}
                 </div>
@@ -312,9 +287,6 @@ export default function MainView({
                     setNewTaskPriority("normal");
                     setNewTaskDeadline("");
                     setNewTaskTags("");
-                    // keep existing filter states but no buttons to change them
-                    setFilterPriority((p) => p);
-                    setShowCompleted((v) => v);
                   }}
                   onClose={() => setAddingTaskToProject(null)}
                   onSubmit={handleColumnAddTask}
@@ -356,7 +328,6 @@ export default function MainView({
                         onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                         onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
                         onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
-                        onUpdateRepeatEveryDays={(n) => updateTaskRepeatEveryDays(task.id, n)}
                       />
                     ))}
                   </div>
@@ -370,8 +341,6 @@ export default function MainView({
                       setNewTaskPriority("normal");
                       setNewTaskDeadline("");
                       setNewTaskTags("");
-                      setFilterPriority((p) => p);
-                      setShowCompleted((v) => v);
                     }}
                     onClose={() => setAddingTaskToProject(null)}
                     onSubmit={handleColumnAddTask}

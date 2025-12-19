@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDatabase } from "./hooks/useDatabase";
 import type { Priority, View } from "./types/ui";
 
@@ -29,16 +29,12 @@ export default function App() {
     updateTaskDeadline,
     updateTaskStatus,
     updateTaskTags,
-    updateTaskRepeat, // Изменено: теперь используем новую функцию
     deleteTask,
 
     addProject,
     editProject,
     updateProjectPriority,
     deleteProject,
-
-    minimizeWindow,
-    toggleWindow,
   } = useDatabase();
 
   const [view, setView] = useState<View>("main");
@@ -64,7 +60,6 @@ export default function App() {
     <div className="min-h-screen bg-[#020617] text-slate-200 flex flex-col h-screen overflow-hidden">
       <ReminderToast onDoneTask={(id) => updateTaskStatus(id, "done")} />
 
-      {/* Изменено: убраны пропсы управления окном */}
       <TopTabs view={view} setView={setView} />
 
       <div className="flex-1 overflow-hidden">
@@ -85,7 +80,6 @@ export default function App() {
             updateTaskDeadline={updateTaskDeadline}
             updateTaskStatus={updateTaskStatus}
             updateTaskTags={updateTaskTags}
-            updateTaskRepeat={updateTaskRepeat} // Передаем новую функцию
             deleteTask={deleteTask}
             addProject={addProject}
             editProject={editProject}
