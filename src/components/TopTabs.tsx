@@ -1,0 +1,99 @@
+import React from "react";
+import { BarChart3, Calendar, ListChecks, Minimize2, Settings, X } from "lucide-react";
+import type { View } from "../types/ui";
+import ExportBackupButton from "./ExportBackupButton";
+
+export default function TopTabs({
+  view,
+  setView,
+  minimizeWindow,
+  toggleWindow,
+}: {
+  view: View;
+  setView: (v: View) => void;
+  minimizeWindow: () => void;
+  toggleWindow: () => void;
+}) {
+  // Focus is a special full-screen mode; don't show tabs there.
+  if (view === "focus") return null;
+
+  return (
+    <header className="px-6 py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50">
+      <div className="flex items-center gap-2">
+        <TabButton
+          active={view === "main"}
+          onClick={() => setView("main")}
+          icon={<ListChecks size={18} />}
+          label="Tasks"
+        />
+        <TabButton
+          active={view === "calendar"}
+          onClick={() => setView("calendar")}
+          icon={<Calendar size={18} />}
+          label="Calendar"
+        />
+        <TabButton
+          active={view === "stats"}
+          onClick={() => setView("stats")}
+          icon={<BarChart3 size={18} />}
+          label="Stats"
+        />
+        <TabButton
+          active={view === "settings"}
+          onClick={() => setView("settings")}
+          icon={<Settings size={18} />}
+          label="Settings"
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <ExportBackupButton />
+
+        <div className="h-4 w-px bg-white/10 mx-1" />
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={minimizeWindow}
+            className="p-2 hover:bg-slate-800 rounded-lg text-slate-600 hover:text-white transition-colors"
+            title="Minimize"
+          >
+            <Minimize2 size={16} />
+          </button>
+          <button
+            onClick={toggleWindow}
+            className="p-2 hover:bg-red-900/30 rounded-lg text-slate-600 hover:text-red-400 transition-colors"
+            title="Close to tray"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium ${
+        active
+          ? "bg-slate-800 border-slate-600 text-white"
+          : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
