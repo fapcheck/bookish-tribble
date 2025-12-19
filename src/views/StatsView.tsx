@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Clock, CheckCircle2, CalendarDays, Flame, Trophy } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock, Flame, Trophy } from "lucide-react";
 import type { UserStats } from "../hooks/useDatabase";
 import * as tauri from "../lib/tauri";
 
@@ -13,7 +13,6 @@ function minutesToHuman(mins: number) {
 }
 
 function parseDay(day: string) {
-  // "YYYY-MM-DD" -> local Date at midnight
   const [y, m, d] = day.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
 }
@@ -40,7 +39,7 @@ function colorClass(count: number) {
   return "bg-emerald-500/70 border-emerald-300/50";
 }
 
-export default function StatsView({ stats, onBack }: { stats: UserStats; onBack: () => void }) {
+export default function StatsView({ stats }: { stats: UserStats }) {
   const [series, setSeries] = useState<tauri.CompletionDay[]>([]);
   const [daysRange, setDaysRange] = useState(90);
 
@@ -64,18 +63,12 @@ export default function StatsView({ stats, onBack }: { stats: UserStats; onBack:
     const start = new Date(today);
     start.setDate(today.getDate() - (daysRange - 1));
 
-    // align to Monday so we can render weeks as columns
     const gridStart = startOfWeekMonday(start);
 
     const out: { day: string; date: Date; count: number }[] = [];
     const cur = new Date(gridStart);
 
-    // render full weeks covering the range
-    const end = new Date(today);
-    end.setDate(today.getDate() + ((7 - ((today.getDay() + 6) % 7) - 1) % 7)); // pad to end-of-week-ish
-    // simpler: just render weeks for daysRange + up to 6 padding
     const totalDays = daysRange + 6;
-
     for (let i = 0; i < totalDays; i++) {
       const day = formatDay(cur);
       const count = map.get(day) ?? 0;
@@ -86,7 +79,6 @@ export default function StatsView({ stats, onBack }: { stats: UserStats; onBack:
     return out;
   }, [map, daysRange]);
 
-  // layout: 7 rows (Mon..Sun), N cols (weeks)
   const weeks = useMemo(() => {
     const cols: typeof cells[] = [];
     for (let i = 0; i < cells.length; i += 7) cols.push(cells.slice(i, i + 7));
@@ -94,20 +86,10 @@ export default function StatsView({ stats, onBack }: { stats: UserStats; onBack:
   }, [cells]);
 
   return (
-    <div className="min-h-screen text-slate-200 font-sans flex flex-col h-screen overflow-hidden bg-[#020617]">
-      <header className="px-6 py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg hover:bg-slate-900 text-slate-400 hover:text-white transition-colors"
-            title="Back"
-          >
-            <ArrowLeft size={18} />
-          </button>
+    <div className="h-full overflow-y-auto p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-lg font-bold text-white">Stats</h1>
-        </div>
-
-        <div className="flex items-center gap-2">
           <select
             value={daysRange}
             onChange={(e) => setDaysRange(Number(e.target.value))}
@@ -119,57 +101,52 @@ export default function StatsView({ stats, onBack }: { stats: UserStats; onBack:
             <option value={180}>Last 180 days</option>
           </select>
         </div>
-      </header>
 
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card icon={<CheckCircle2 size={18} className="text-emerald-300" />} title="Completed (total)" value={String(stats.completed_tasks)} />
-            <Card icon={<Clock size={18} className="text-sky-300" />} title="Focus time (total)" value={minutesToHuman(stats.total_focus_time)} />
-            <Card icon={<CalendarDays size={18} className="text-indigo-300" />} title="Completed today" value={String(stats.completed_today)} />
-            <Card icon={<CalendarDays size={18} className="text-indigo-300" />} title="Completed last 7 days" value={String(stats.completed_week)} />
-          </section>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card icon={<CheckCircle2 size={18} className="text-emerald-300" />} title="Completed (total)" value={String(stats.completed_tasks)} />
+          <Card icon={<Clock size={18} className="text-sky-300" />} title="Focus time (total)" value={minutesToHuman(stats.total_focus_time)} />
+          <Card icon={<CalendarDays size={18} className="text-indigo-300" />} title="Completed today" value={String(stats.completed_today)} />
+          <Card icon={<CalendarDays size={18} className="text-indigo-300" />} title="Completed last 7 days" value={String(stats.completed_week)} />
+        </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card icon={<Flame size={18} className="text-orange-300" />} title="Current streak (days)" value={String(stats.current_streak)} />
-            <Card icon={<Trophy size={18} className="text-amber-300" />} title="Best streak (days)" value={String(stats.best_streak)} />
-          </section>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card icon={<Flame size={18} className="text-orange-300" />} title="Current streak (days)" value={String(stats.current_streak)} />
+          <Card icon={<Trophy size={18} className="text-amber-300" />} title="Best streak (days)" value={String(stats.best_streak)} />
+        </section>
 
-          <section className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-5">
-            <h2 className="text-white font-bold mb-4">Completion heatmap</h2>
+        <section className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-5">
+          <h2 className="text-white font-bold mb-4">Completion heatmap</h2>
 
-            <div className="overflow-x-auto">
-              <div className="inline-flex gap-1">
-                {weeks.map((col, i) => (
-                  <div key={i} className="flex flex-col gap-1">
-                    {col.map((c) => {
-                      // hide cells outside selected range (padding before the start)
-                      const inRange = c.date >= parseDay(formatDay(new Date(Date.now() - (daysRange - 1) * 86400000)));
-                      return (
-                        <div
-                          key={c.day}
-                          title={`${c.day}: ${c.count} completed`}
-                          className={`w-3.5 h-3.5 rounded border ${inRange ? colorClass(c.count) : "bg-transparent border-transparent"}`}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+          <div className="overflow-x-auto">
+            <div className="inline-flex gap-1">
+              {weeks.map((col, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  {col.map((c) => {
+                    const inRange = c.date >= parseDay(formatDay(new Date(Date.now() - (daysRange - 1) * 86400000)));
+                    return (
+                      <div
+                        key={c.day}
+                        title={`${c.day}: ${c.count} completed`}
+                        className={`w-3.5 h-3.5 rounded border ${inRange ? colorClass(c.count) : "bg-transparent border-transparent"}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="flex items-center justify-between mt-4 text-xs text-slate-500">
-              <span>Less</span>
-              <div className="flex items-center gap-1">
-                {[0, 1, 2, 4, 8].map((n) => (
-                  <div key={n} className={`w-3.5 h-3.5 rounded border ${colorClass(n)}`} />
-                ))}
-              </div>
-              <span>More</span>
+          <div className="flex items-center justify-between mt-4 text-xs text-slate-500">
+            <span>Less</span>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2, 4, 8].map((n) => (
+                <div key={n} className={`w-3.5 h-3.5 rounded border ${colorClass(n)}`} />
+              ))}
             </div>
-          </section>
-        </div>
-      </main>
+            <span>More</span>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

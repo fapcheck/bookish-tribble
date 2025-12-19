@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type Priority = "low" | "normal" | "high";
 export type Status = "todo" | "doing" | "done";
+export type RepeatMode = "daily" | "weekdays" | "custom";
 
 export type DbHealth = {
   db_path: string;
@@ -11,7 +12,7 @@ export type DbHealth = {
 };
 
 export type CompletionDay = {
-  day: string; // YYYY-MM-DD (localtime in backend)
+  day: string;
   count: number;
 };
 
@@ -19,34 +20,40 @@ export type Task = {
   id: string;
   project_id?: string | null;
   title: string;
-  description?: string;
+  description?: string | null;
   priority: Priority;
   status: Status;
-  created_at: number;
-  completed_at?: number;
-  deadline?: number;
-  estimated_minutes?: number;
-  actual_minutes?: number;
+  created_at: number; // ms
+  completed_at?: number | null; // ms
+  deadline?: number | null; // ms
+  estimated_minutes?: number | null;
+  actual_minutes?: number | null;
   tags: string[];
 
-  remind_at?: number;
-  reminded_at?: number;
+  remind_at?: number | null; // ms
+  reminded_at?: number | null; // ms
+
+  repeat_mode?: RepeatMode | null;
+  repeat_days_mask?: number | null;
 };
 
 export type NewTask = {
   id: string;
   project_id?: string | null;
   title: string;
-  description?: string;
+  description?: string | null;
   priority: Priority;
   status: Status;
-  created_at: number;
-  deadline?: number;
-  estimated_minutes?: number;
-  actual_minutes?: number;
+  created_at: number; // ms
+  deadline?: number | null; // ms
+  estimated_minutes?: number | null;
+  actual_minutes?: number | null;
   tags: string[];
 
-  remind_at?: number;
+  remind_at?: number | null; // ms
+
+  repeat_mode?: RepeatMode | null;
+  repeat_days_mask?: number | null;
 };
 
 export type Project = {
@@ -54,7 +61,7 @@ export type Project = {
   name: string;
   color: string;
   priority: Priority;
-  created_at: number;
+  created_at: number; // ms
 };
 
 export type UserStats = {
@@ -65,7 +72,7 @@ export type UserStats = {
   completed_week: number;
   best_streak: number;
 
-  total_focus_time: number;
+  total_focus_time: number; // minutes
   tasks_today: number;
   tasks_week: number;
   current_streak: number;
@@ -89,12 +96,25 @@ export type AppSettings = {
   reminder_lead_minutes: number;
 };
 
+export type ExportBundle = {
+  version: number;
+  exported_at: number; // ms
+  projects: Project[];
+  tasks: Task[];
+  settings: AppSettings;
+};
+
 // ---- Debug ----
 export function db_health() {
   return invoke<DbHealth>("db_health");
 }
 
-// ---- Calendar series (NEW) ----
+// ---- Export ----
+export function export_data() {
+  return invoke<ExportBundle>("export_data");
+}
+
+// ---- Calendar series ----
 export function get_completion_series(days: number) {
   return invoke<CompletionDay[]>("get_completion_series", { days });
 }
@@ -144,6 +164,14 @@ export function update_task_priority(id: string, priority: Priority) {
 
 export function update_task_deadline(id: string, deadline: number | null) {
   return invoke<void>("update_task_deadline", { id, deadline });
+}
+
+export function update_task_tags(id: string, tags: string[]) {
+  return invoke<void>("update_task_tags", { id, tags });
+}
+
+export function update_task_repeat(id: string, repeatMode: RepeatMode | null, repeatDaysMask: number | null) {
+  return invoke<void>("update_task_repeat", { id, repeatMode, repeatDaysMask });
 }
 
 export function update_task_status(taskId: string, newStatus: Status) {

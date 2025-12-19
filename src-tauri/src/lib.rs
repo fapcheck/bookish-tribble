@@ -1,14 +1,11 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+//! Library entrypoint for Tauri (main desktop entrypoint is `src-tauri/src/main.rs`).
+//!
+//! Keep this file minimal to avoid duplicating setup/invoke wiring in two places.
+//! If you later target mobile, you can move shared builder setup into a common module.
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

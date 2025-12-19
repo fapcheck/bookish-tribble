@@ -1,16 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "FocusFlow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.focusflow.app",
   "build": {
-<<<<<<< HEAD
     "beforeDevCommand": "npm run dev:web",
     "beforeBuildCommand": "npm run build:web",
-=======
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
->>>>>>> origin/main
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
@@ -33,13 +28,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-<<<<<<< HEAD
     "icon": ["icons/32x32.png", "icons/128x128.png"]
-=======
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png"
-    ]
->>>>>>> origin/main
   }
 }

@@ -1,18 +1,14 @@
 import React from "react";
-import { BarChart3, Calendar, ListChecks, Minimize2, Settings, X } from "lucide-react";
+import { BarChart3, Calendar, ListChecks, Settings } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
 
 export default function TopTabs({
   view,
   setView,
-  minimizeWindow,
-  toggleWindow,
 }: {
   view: View;
   setView: (v: View) => void;
-  minimizeWindow: () => void;
-  toggleWindow: () => void;
 }) {
   // Focus is a special full-screen mode; don't show tabs there.
   if (view === "focus") return null;
@@ -48,25 +44,6 @@ export default function TopTabs({
 
       <div className="flex items-center gap-3">
         <ExportBackupButton />
-
-        <div className="h-4 w-px bg-white/10 mx-1" />
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={minimizeWindow}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-600 hover:text-white transition-colors"
-            title="Minimize"
-          >
-            <Minimize2 size={16} />
-          </button>
-          <button
-            onClick={toggleWindow}
-            className="p-2 hover:bg-red-900/30 rounded-lg text-slate-600 hover:text-red-400 transition-colors"
-            title="Close to tray"
-          >
-            <X size={16} />
-          </button>
-        </div>
       </div>
     </header>
   );

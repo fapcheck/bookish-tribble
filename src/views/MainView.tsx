@@ -1,29 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  CheckCircle2,
-  Coffee,
-  CornerDownLeft,
-  Filter,
-  Flame,
-  Inbox,
-  Layers,
-  Minimize2,
-  Play,
-  Plus,
-  Settings,
-  Sparkles,
-  Target,
-  X,
-  Zap,
-} from "lucide-react";
+import { Coffee, CornerDownLeft, Flame, Inbox, Layers, Play, Plus, Sparkles, Zap, X } from "lucide-react";
 import type { Priority } from "../types/ui";
 import type { Project, Task } from "../hooks/useDatabase";
 import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
 import TrelloColumn from "../components/TrelloColumn";
-import ExportBackupButton from "../components/ExportBackupButton";
 import { sortTasksForFocus } from "../utils/tasks";
 
 export default function MainView({
@@ -36,21 +18,19 @@ export default function MainView({
   setFilterProject,
   showCompleted,
   setShowCompleted,
-  minimizeWindow,
-  toggleWindow,
   addTask,
   editTaskTitle,
   updateTaskPriority,
   updateTaskDeadline,
   updateTaskStatus,
+  updateTaskTags,
+  updateTaskRepeatEveryDays,
   deleteTask,
   addProject,
   editProject,
   updateProjectPriority,
   deleteProject,
   onStartFocus,
-  onOpenSettings,
-  onOpenStats,
 }: {
   tasks: Task[];
   projects: Project[];
@@ -62,9 +42,6 @@ export default function MainView({
   setFilterProject: React.Dispatch<React.SetStateAction<"all" | "inbox" | string>>;
   showCompleted: boolean;
   setShowCompleted: React.Dispatch<React.SetStateAction<boolean>>;
-
-  minimizeWindow: () => void;
-  toggleWindow: () => void;
 
   addTask: (
     title: string,
@@ -78,6 +55,8 @@ export default function MainView({
   updateTaskPriority: (id: string, priority: Priority) => Promise<void>;
   updateTaskDeadline: (id: string, deadline: number | null) => Promise<void>;
   updateTaskStatus: (id: string, status: "todo" | "doing" | "done") => Promise<void>;
+  updateTaskTags: (id: string, tags: string[]) => Promise<void>;
+  updateTaskRepeatEveryDays: (id: string, repeatEveryDays: number | null) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 
   addProject: (name: string, color: string, priority: Priority) => Promise<any>;
@@ -86,8 +65,6 @@ export default function MainView({
   deleteProject: (id: string) => Promise<void>;
 
   onStartFocus: () => void;
-  onOpenSettings: () => void;
-  onOpenStats: () => void;
 }) {
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -103,6 +80,7 @@ export default function MainView({
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [newTaskTags, setNewTaskTags] = useState("");
 
+  // Keep filtering logic (buttons removed, but filters still apply if set elsewhere)
   const displayedTasks = useMemo(() => {
     let list = tasks;
     if (filterPriority !== "all") list = list.filter((t) => t.priority === filterPriority);
@@ -134,12 +112,6 @@ export default function MainView({
     return p ? p.name : "Входящие";
   }, [filterProject, projects]);
 
-  const cyclePriorityFilter = () => {
-    setFilterPriority((prev) =>
-      prev === "all" ? "high" : prev === "high" ? "normal" : prev === "normal" ? "low" : "all"
-    );
-  };
-
   const cycleProjectPriority = (p: Priority): Priority =>
     p === "low" ? "normal" : p === "normal" ? "high" : "low";
 
@@ -147,17 +119,7 @@ export default function MainView({
     e.preventDefault();
     if (!newProjectName.trim()) return;
 
-    const colors = [
-      "#ef4444",
-      "#f97316",
-      "#eab308",
-      "#22c55e",
-      "#3b82f6",
-      "#6366f1",
-      "#a855f7",
-      "#ec4899",
-      "#71717a",
-    ];
+    const colors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#6366f1", "#a855f7", "#ec4899", "#71717a"];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     await addProject(newProjectName, randomColor, newProjectPriority);
 
@@ -198,97 +160,25 @@ export default function MainView({
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617]">
+      <div className="h-full flex items-center justify-center">
         <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.7, 0.3] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="text-slate-500"
         >
-          <Target size={40} />
+          <Flame size={40} />
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-slate-200 selection:bg-indigo-500/30 font-sans flex flex-col h-screen overflow-hidden bg-[#020617]">
-      <header className="px-6 py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/20">
-            <Target className="text-indigo-400" size={18} />
-          </div>
-          <h1 className="text-lg font-bold text-white">FocusFlow</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={cyclePriorityFilter}
-            className={`p-2 rounded-lg transition-colors ${
-              filterPriority !== "all"
-                ? "bg-slate-800 text-white"
-                : "text-slate-600 hover:text-slate-400 hover:bg-slate-900"
-            }`}
-            title="Cycle priority filter"
-          >
-            <Filter size={18} />
-          </button>
-
-          <button
-            onClick={() => setShowCompleted((v) => !v)}
-            className={`p-2 rounded-lg transition-colors ${
-              showCompleted
-                ? "bg-slate-800 text-white"
-                : "text-slate-600 hover:text-slate-400 hover:bg-slate-900"
-            }`}
-            title="Toggle completed tasks"
-          >
-            <CheckCircle2 size={18} />
-          </button>
-
-          <button
-            onClick={onOpenStats}
-            className="p-2 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-slate-900 transition-colors"
-            title="Stats"
-          >
-            <BarChart3 size={18} />
-          </button>
-
-          <button
-            onClick={onOpenSettings}
-            className="p-2 rounded-lg text-slate-600 hover:text-slate-400 hover:bg-slate-900 transition-colors"
-            title="Settings"
-          >
-            <Settings size={18} />
-          </button>
-
-          <ExportBackupButton />
-
-          <div className="h-4 w-px bg-white/10 mx-1" />
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={minimizeWindow}
-              className="p-2 hover:bg-slate-800 rounded-lg text-slate-600 hover:text-white transition-colors"
-              title="Minimize"
-            >
-              <Minimize2 size={16} />
-            </button>
-            <button
-              onClick={toggleWindow}
-              className="p-2 hover:bg-red-900/30 rounded-lg text-slate-600 hover:text-red-400 transition-colors"
-              title="Close to tray"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Project filters */}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Project filters row (removed Filter + Completed toggle buttons) */}
       <div className="px-6 py-3 border-b border-white/5 flex gap-2 overflow-x-auto bg-[#020617]">
         <button
           onClick={() => setFilterProject("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${
             filterProject === "all"
               ? "bg-indigo-600 border-indigo-500 text-white"
               : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
@@ -299,7 +189,7 @@ export default function MainView({
 
         <button
           onClick={() => setFilterProject("inbox")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${
             filterProject === "inbox"
               ? "bg-slate-700 border-slate-600 text-white"
               : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
@@ -312,7 +202,7 @@ export default function MainView({
           <button
             key={p.id}
             onClick={() => setFilterProject(p.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap shrink-0 ${
               filterProject === p.id
                 ? "bg-slate-800 text-white border-slate-600"
                 : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
@@ -364,7 +254,7 @@ export default function MainView({
                 </button>
               ))}
 
-              <div className="w-px h-4 bg-slate-700 mx-1"></div>
+              <div className="w-px h-4 bg-slate-700 mx-1" />
 
               <button type="submit" className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">
                 <CornerDownLeft size={16} />
@@ -384,7 +274,7 @@ export default function MainView({
                   <Flame size={14} /> Следующая задача
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-1">{focusQueue[0].title}</h2>
-                <p className="text-slate-500 text-sm">и ещё {focusQueue.length - 1} в очереди</p>
+                <p className="text-slate-500 text-sm">и ещё {Math.max(0, focusQueue.length - 1)} в очереди</p>
               </div>
               <button
                 onClick={onStartFocus}
@@ -408,6 +298,8 @@ export default function MainView({
                       onEditTitle={(t) => editTaskTitle(task.id, t)}
                       onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                       onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
+                      onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
+                      onUpdateRepeatEveryDays={(n) => updateTaskRepeatEveryDays(task.id, n)}
                     />
                   ))}
                 </div>
@@ -420,6 +312,9 @@ export default function MainView({
                     setNewTaskPriority("normal");
                     setNewTaskDeadline("");
                     setNewTaskTags("");
+                    // keep existing filter states but no buttons to change them
+                    setFilterPriority((p) => p);
+                    setShowCompleted((v) => v);
                   }}
                   onClose={() => setAddingTaskToProject(null)}
                   onSubmit={handleColumnAddTask}
@@ -460,6 +355,8 @@ export default function MainView({
                         onEditTitle={(t) => editTaskTitle(task.id, t)}
                         onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                         onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
+                        onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
+                        onUpdateRepeatEveryDays={(n) => updateTaskRepeatEveryDays(task.id, n)}
                       />
                     ))}
                   </div>
@@ -473,6 +370,8 @@ export default function MainView({
                       setNewTaskPriority("normal");
                       setNewTaskDeadline("");
                       setNewTaskTags("");
+                      setFilterPriority((p) => p);
+                      setShowCompleted((v) => v);
                     }}
                     onClose={() => setAddingTaskToProject(null)}
                     onSubmit={handleColumnAddTask}
@@ -531,7 +430,7 @@ export default function MainView({
                       ))}
                     </div>
 
-                    <div className="flex-1"></div>
+                    <div className="flex-1" />
 
                     <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors">
                       Создать
