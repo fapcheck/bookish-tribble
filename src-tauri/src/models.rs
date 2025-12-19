@@ -50,6 +50,16 @@ pub struct Project {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Subtask {
+    pub id: String,
+    pub task_id: String,
+    pub title: String,
+    pub completed: bool,
+    pub sort_order: i32,
+    pub created_at: i64, // UNIX ms
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
     pub project_id: Option<String>,
@@ -68,8 +78,13 @@ pub struct Task {
     pub reminded_at: Option<i64>, // UNIX ms
 
     // repeat
-    pub repeat_mode: Option<String>,     // "daily" | "weekdays" | "custom"
-    pub repeat_days_mask: Option<i64>,   // bitmask for "custom"
+    pub repeat_mode: Option<String>, // "daily" | "weekdays" | "custom"
+    pub repeat_days_mask: Option<i64>, // bitmask for "custom"
+
+    // v2 fields
+    pub is_archived: bool,
+    pub sort_order: i32,
+    pub subtasks: Vec<Subtask>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

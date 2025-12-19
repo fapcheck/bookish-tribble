@@ -2,10 +2,13 @@ import { useMemo, useState } from "react";
 import { Coffee, CornerDownLeft, Flame, Inbox, Layers, Play, Plus, Sparkles, Zap, X } from "lucide-react";
 import type { Priority } from "../types/ui";
 import type { Project, Task } from "../hooks/useDatabase";
+import type { TaskFilter } from "../lib/tauri";
 import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
 import TrelloColumn from "../components/TrelloColumn";
+import SearchBar from "../components/SearchBar";
 import { sortTasksForFocus } from "../utils/tasks";
+import { parseNaturalLanguage } from "../utils/naturalLanguage";
 
 export default function MainView(props: {
   tasks: Task[];
@@ -81,12 +84,48 @@ export default function MainView(props: {
   const [newTaskDeadline, setNewTaskDeadline] = useState("");
   const [newTaskTags, setNewTaskTags] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
+
   const displayedTasks = useMemo(() => {
     let list = tasks;
+
+    // Apply filter
+    if (taskFilter === "archived") {
+      list = list.filter((t) => t.is_archived);
+    } else {
+      // Hide archived by default
+      list = list.filter((t) => !t.is_archived);
+
+      if (taskFilter === "due_today") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        list = list.filter((t) => t.deadline && t.deadline >= today.getTime() && t.deadline < tomorrow.getTime());
+      } else if (taskFilter === "overdue") {
+        const now = Date.now();
+        list = list.filter((t) => t.deadline && t.deadline < now && t.status !== "done");
+      }
+    }
+
+    // Apply priority filter
     if (filterPriority !== "all") list = list.filter((t) => t.priority === filterPriority);
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.tags ?? []).some((tag) => tag.toLowerCase().includes(q))
+      );
+    }
+
+    // Hide completed unless showCompleted
     if (!showCompleted) list = list.filter((t) => t.status !== "done");
+
     return list;
-  }, [tasks, filterPriority, showCompleted]);
+  }, [tasks, filterPriority, showCompleted, searchQuery, taskFilter]);
 
   const inboxTasks = useMemo(() => displayedTasks.filter((t) => !t.project_id), [displayedTasks]);
 
@@ -129,10 +168,20 @@ export default function MainView(props: {
     e.preventDefault();
     if (!quickAddTitle.trim()) return;
 
+    // Parse natural language
+    const parsed = parseNaturalLanguage(quickAddTitle);
+
     let targetProjectId: string | undefined = undefined;
     if (filterProject !== "all" && filterProject !== "inbox") targetProjectId = filterProject;
 
-    await addTask(quickAddTitle, quickAddPriority, undefined, targetProjectId);
+    await addTask(
+      parsed.cleanTitle,
+      parsed.priority || quickAddPriority,
+      undefined,
+      targetProjectId,
+      parsed.deadline,
+      parsed.tags
+    );
     setQuickAddTitle("");
     setQuickAddPriority("normal");
   };
@@ -160,22 +209,20 @@ export default function MainView(props: {
       <div className="px-6 py-3 border-b border-white/5 flex gap-2 overflow-x-auto bg-[#020617]">
         <button
           onClick={() => setFilterProject("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${
-            filterProject === "all"
-              ? "bg-indigo-600 border-indigo-500 text-white"
-              : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
-          }`}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${filterProject === "all"
+            ? "bg-indigo-600 border-indigo-500 text-white"
+            : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+            }`}
         >
           <Layers size={12} /> Все
         </button>
 
         <button
           onClick={() => setFilterProject("inbox")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${
-            filterProject === "inbox"
-              ? "bg-slate-700 border-slate-600 text-white"
-              : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
-          }`}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${filterProject === "inbox"
+            ? "bg-slate-700 border-slate-600 text-white"
+            : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+            }`}
         >
           <Inbox size={12} /> Входящие
         </button>
@@ -184,9 +231,8 @@ export default function MainView(props: {
           <button
             key={p.id}
             onClick={() => setFilterProject(p.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap shrink-0 ${
-              filterProject === p.id ? "bg-slate-800 text-white border-slate-600" : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white border-slate-600" : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+              }`}
           >
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
             {p.name}
@@ -195,6 +241,18 @@ export default function MainView(props: {
             {p.priority === "low" && <Coffee size={10} className="text-emerald-400" />}
           </button>
         ))}
+      </div>
+
+      {/* Search & Filter bar */}
+      <div className="px-6 py-2 bg-[#0f172a]/30 border-b border-white/5">
+        <div className="max-w-[1600px] mx-auto">
+          <SearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            filter={taskFilter}
+            setFilter={setTaskFilter}
+          />
+        </div>
       </div>
 
       <div className="px-6 py-4 bg-[#0f172a]/50 border-b border-white/5">
@@ -217,9 +275,8 @@ export default function MainView(props: {
                   key={p}
                   type="button"
                   onClick={() => setQuickAddPriority(p)}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    quickAddPriority === p ? "bg-slate-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
-                  }`}
+                  className={`p-1.5 rounded-lg transition-all ${quickAddPriority === p ? "bg-slate-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
+                    }`}
                 >
                   {p === "high" ? (
                     <Zap size={16} className={quickAddPriority === p ? "text-red-400" : ""} />
@@ -390,9 +447,8 @@ export default function MainView(props: {
                           key={p}
                           type="button"
                           onClick={() => setNewProjectPriority(p)}
-                          className={`px-3 py-1 text-xs rounded transition-colors ${
-                            newProjectPriority === p ? "bg-slate-600 text-white" : "text-slate-500 hover:text-slate-300"
-                          }`}
+                          className={`px-3 py-1 text-xs rounded transition-colors ${newProjectPriority === p ? "bg-slate-600 text-white" : "text-slate-500 hover:text-slate-300"
+                            }`}
                         >
                           {p === "high" ? "Высокий" : p === "normal" ? "Обычный" : "Низкий"}
                         </button>

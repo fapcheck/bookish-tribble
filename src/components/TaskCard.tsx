@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
+import { Archive, Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
 import type { Priority } from "../types/ui";
 import type { Task } from "../hooks/useDatabase";
+import type { Subtask } from "../lib/tauri";
 import * as tauri from "../lib/tauri";
+import SubtaskList from "./SubtaskList";
 
 function tomorrowAt9LocalMs() {
   const d = new Date();
@@ -54,6 +56,9 @@ export default function TaskCard({
 
   const [cardRefEl, setCardRefEl] = useState<HTMLDivElement | null>(null);
 
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [subtasksVersion, setSubtasksVersion] = useState(0);
+
   const priorityStyles: Record<Priority, string> = {
     high: "text-red-400 bg-red-950/30 border-red-900/30",
     normal: "text-blue-400 bg-blue-950/30 border-blue-900/30",
@@ -64,6 +69,13 @@ export default function TaskCard({
   const hasReminder = useMemo(() => !!task.remind_at, [task.remind_at]);
 
   const elevated = reminderOpen || isEditingTags || isEditingDate || isEditingTitle;
+
+  // Fetch subtasks
+  useEffect(() => {
+    tauri.get_subtasks(task.id).then(setSubtasks).catch(console.error);
+  }, [task.id, subtasksVersion]);
+
+  const refreshSubtasks = () => setSubtasksVersion((v) => v + 1);
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -224,11 +236,10 @@ export default function TaskCard({
                     e.stopPropagation();
                     setIsEditingDate(true);
                   }}
-                  className={`text-sm px-3 py-1.5 rounded-lg border flex items-center gap-2 hover:bg-slate-700 cursor-pointer transition-all ${
-                    task.deadline && new Date(task.deadline) < new Date() && task.status !== "done"
-                      ? "bg-red-900/20 text-red-400 border-red-900/30"
-                      : "bg-slate-800 text-slate-400 border-slate-700"
-                  }`}
+                  className={`text-sm px-3 py-1.5 rounded-lg border flex items-center gap-2 hover:bg-slate-700 cursor-pointer transition-all ${task.deadline && new Date(task.deadline) < new Date() && task.status !== "done"
+                    ? "bg-red-900/20 text-red-400 border-red-900/30"
+                    : "bg-slate-800 text-slate-400 border-slate-700"
+                    }`}
                   title="Edit deadline"
                 >
                   <Calendar size={16} />
@@ -314,6 +325,9 @@ export default function TaskCard({
               />
             </div>
           )}
+
+          {/* Subtasks */}
+          <SubtaskList taskId={task.id} subtasks={subtasks} onUpdate={refreshSubtasks} />
         </div>
 
         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity relative">
@@ -379,6 +393,21 @@ export default function TaskCard({
           )}
 
           <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                await tauri.archive_task(task.id);
+              } catch (err) {
+                console.error("Archive failed:", err);
+              }
+            }}
+            className="text-slate-500 hover:text-amber-400 transition-all p-1"
+            title="Архивировать"
+          >
+            <Archive size={14} />
+          </button>
+
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
@@ -405,9 +434,8 @@ function MenuBtn({ label, onClick, danger }: { label: string; onClick: () => voi
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-2 py-2 rounded-lg text-sm transition-colors ${
-        danger ? "text-red-300 hover:bg-red-900/30" : "text-slate-200 hover:bg-slate-800"
-      }`}
+      className={`w-full text-left px-2 py-2 rounded-lg text-sm transition-colors ${danger ? "text-red-300 hover:bg-red-900/30" : "text-slate-200 hover:bg-slate-800"
+        }`}
     >
       {label}
     </button>

@@ -1,5 +1,5 @@
 import React from "react";
-import { BarChart3, Calendar, ListChecks, Settings } from "lucide-react";
+import { BarChart3, Calendar, ClipboardList, ListChecks, Settings } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
 import ImportBackupButton from "./ImportBackupButton";
@@ -21,25 +21,31 @@ export default function TopTabs({
           active={view === "main"}
           onClick={() => setView("main")}
           icon={<ListChecks size={18} />}
-          label="Tasks"
+          label="Задачи"
         />
         <TabButton
           active={view === "calendar"}
           onClick={() => setView("calendar")}
           icon={<Calendar size={18} />}
-          label="Calendar"
+          label="Календарь"
+        />
+        <TabButton
+          active={view === "review"}
+          onClick={() => setView("review")}
+          icon={<ClipboardList size={18} />}
+          label="Обзор"
         />
         <TabButton
           active={view === "stats"}
           onClick={() => setView("stats")}
           icon={<BarChart3 size={18} />}
-          label="Stats"
+          label="Статистика"
         />
         <TabButton
           active={view === "settings"}
           onClick={() => setView("settings")}
           icon={<Settings size={18} />}
-          label="Settings"
+          label="Настройки"
         />
       </div>
 
@@ -66,8 +72,8 @@ function TabButton({
     <button
       onClick={onClick}
       className={`px-3 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium ${active
-          ? "bg-slate-800 border-slate-600 text-white"
-          : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+        ? "bg-slate-800 border-slate-600 text-white"
+        : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
         }`}
     >
       {icon}

@@ -8,7 +8,7 @@ mod database;
 mod models;
 
 use database::AppDatabase;
-use models::{AppSettings, NewTask, Priority, Project, Status, Task, UserStats};
+use models::{AppSettings, NewTask, Priority, Project, Status, Subtask, Task, UserStats};
 
 struct AppState {
     db: Mutex<AppDatabase>,
@@ -459,6 +459,96 @@ async fn cancel_focus_session(
     Ok(())
 }
 
+// --- SUBTASKS ---
+
+#[tauri::command]
+async fn get_subtasks(state: State<'_, AppState>, task_id: String) -> Result<Vec<Subtask>, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.get_subtasks(&task_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn add_subtask(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    task_id: String,
+    title: String,
+) -> Result<Subtask, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let subtask = db
+        .add_subtask(&task_id, &title)
+        .map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "subtasks", "add", Some(task_id));
+    Ok(subtask)
+}
+
+#[tauri::command]
+async fn toggle_subtask(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<bool, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let completed = db.toggle_subtask(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "subtasks", "toggle", Some(id));
+    Ok(completed)
+}
+
+#[tauri::command]
+async fn delete_subtask(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_subtask(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "subtasks", "delete", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn reorder_subtasks(
+    state: State<'_, AppState>,
+    subtask_ids: Vec<String>,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.reorder_subtasks(&subtask_ids).map_err(|e| e.to_string())
+}
+
+// --- ARCHIVE ---
+
+#[tauri::command]
+async fn archive_task(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.archive_task(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "tasks", "archive", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn unarchive_task(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.unarchive_task(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "tasks", "unarchive", Some(id));
+    Ok(())
+}
+
+// --- REORDER TASKS ---
+
+#[tauri::command]
+async fn reorder_tasks(state: State<'_, AppState>, task_ids: Vec<String>) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.reorder_tasks(&task_ids).map_err(|e| e.to_string())
+}
+
 // --- WINDOW ---
 
 #[tauri::command]
@@ -572,6 +662,15 @@ fn main() {
             update_task_repeat,
             update_task_status,
             delete_task,
+            reorder_tasks,
+            archive_task,
+            unarchive_task,
+            // subtasks
+            get_subtasks,
+            add_subtask,
+            toggle_subtask,
+            delete_subtask,
+            reorder_subtasks,
             // stats
             get_stats,
             // focus

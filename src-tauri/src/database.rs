@@ -211,8 +211,60 @@ impl AppDatabase {
             commit_migration(1)?;
         }
 
-        // Future versions go here:
-        // if current_version < 2 { ... commit_migration(2)?; }
+        // Version 2: Subtasks, Archive, Sort Order
+        if current_version < 2 {
+            conn.execute_batch(
+                "CREATE TABLE IF NOT EXISTS subtasks (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    completed INTEGER NOT NULL DEFAULT 0,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id);
+                ",
+            )
+            .map_err(|e| e.to_string())?;
+
+            // Add columns to tasks (SQLite doesn't support IF NOT EXISTS for columns)
+            let has_is_archived = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='is_archived'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_is_archived {
+                conn.execute(
+                    "ALTER TABLE tasks ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+
+            let has_sort_order = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name='sort_order'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_sort_order {
+                conn.execute(
+                    "ALTER TABLE tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+
+            commit_migration(2)?;
+        }
 
         Ok(())
     }
@@ -439,6 +491,9 @@ impl AppDatabase {
                     reminded_at: row.get(13)?,
                     repeat_mode: row.get(14)?,
                     repeat_days_mask: row.get(15)?,
+                    is_archived: false,
+                    sort_order: 0,
+                    subtasks: Vec::new(),
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -473,6 +528,9 @@ impl AppDatabase {
             reminded_at: None,
             repeat_mode: task.repeat_mode.clone(),
             repeat_days_mask: task.repeat_days_mask,
+            is_archived: false,
+            sort_order: 0,
+            subtasks: Vec::new(),
         })
     }
 
@@ -600,6 +658,9 @@ impl AppDatabase {
                     reminded_at: row.get(13)?,
                     repeat_mode: row.get(14)?,
                     repeat_days_mask: row.get(15)?,
+                    is_archived: false,
+                    sort_order: 0,
+                    subtasks: Vec::new(),
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -859,6 +920,136 @@ impl AppDatabase {
             level: (done / 10) as u32 + 1,
             points: done * 20,
         })
+    }
+
+    // --- SUBTASKS ---
+
+    pub fn get_subtasks(&self, task_id: &str) -> Result<Vec<Subtask>, String> {
+        let conn = &self.conn;
+        let mut stmt = conn
+            .prepare("SELECT id, task_id, title, completed, sort_order, created_at FROM subtasks WHERE task_id = ?1 ORDER BY sort_order ASC, created_at ASC")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![task_id], |row| {
+                Ok(Subtask {
+                    id: row.get(0)?,
+                    task_id: row.get(1)?,
+                    title: row.get(2)?,
+                    completed: row.get::<_, i32>(3)? != 0,
+                    sort_order: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        let mut res = Vec::new();
+        for r in rows {
+            res.push(r.map_err(|e| e.to_string())?);
+        }
+        Ok(res)
+    }
+
+    pub fn add_subtask(&self, task_id: &str, title: &str) -> Result<Subtask, String> {
+        let conn = &self.conn;
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().timestamp_millis();
+
+        // Get next sort_order
+        let max_order: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM subtasks WHERE task_id = ?1",
+                params![task_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        conn.execute(
+            "INSERT INTO subtasks (id, task_id, title, completed, sort_order, created_at) VALUES (?1, ?2, ?3, 0, ?4, ?5)",
+            params![id, task_id, title, max_order, now],
+        )
+        .map_err(|e| e.to_string())?;
+
+        Ok(Subtask {
+            id,
+            task_id: task_id.to_string(),
+            title: title.to_string(),
+            completed: false,
+            sort_order: max_order,
+            created_at: now,
+        })
+    }
+
+    pub fn toggle_subtask(&self, id: &str) -> Result<bool, String> {
+        let conn = &self.conn;
+        conn.execute(
+            "UPDATE subtasks SET completed = 1 - completed WHERE id = ?1",
+            params![id],
+        )
+        .map_err(|e| e.to_string())?;
+
+        // Return new state
+        let completed: i32 = conn
+            .query_row(
+                "SELECT completed FROM subtasks WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(completed != 0)
+    }
+
+    pub fn delete_subtask(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute("DELETE FROM subtasks WHERE id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn reorder_subtasks(&self, subtask_ids: &[String]) -> Result<(), String> {
+        let conn = &self.conn;
+        for (i, id) in subtask_ids.iter().enumerate() {
+            conn.execute(
+                "UPDATE subtasks SET sort_order = ?1 WHERE id = ?2",
+                params![i as i32, id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
+    // --- ARCHIVE ---
+
+    pub fn archive_task(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute(
+            "UPDATE tasks SET is_archived = 1 WHERE id = ?1",
+            params![id],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn unarchive_task(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute(
+            "UPDATE tasks SET is_archived = 0 WHERE id = ?1",
+            params![id],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    // --- REORDER TASKS ---
+
+    pub fn reorder_tasks(&self, task_ids: &[String]) -> Result<(), String> {
+        let conn = &self.conn;
+        for (i, id) in task_ids.iter().enumerate() {
+            conn.execute(
+                "UPDATE tasks SET sort_order = ?1 WHERE id = ?2",
+                params![i as i32, id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Ok(())
     }
 }
 

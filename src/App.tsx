@@ -10,6 +10,7 @@ import CalendarView from "./views/CalendarView";
 import StatsView from "./views/StatsView";
 import SettingsView from "./views/SettingsView";
 import FocusView from "./views/FocusView";
+import WeeklyReviewView from "./views/WeeklyReviewView";
 
 import { sortTasksForFocus } from "./utils/tasks";
 
@@ -94,6 +95,8 @@ export default function App() {
         {view === "stats" && stats ? <StatsView stats={stats} /> : null}
 
         {view === "settings" && settings ? <SettingsView settings={settings} onSave={saveSettings} /> : null}
+
+        {view === "review" && <WeeklyReviewView />}
 
         {view === "focus" && (
           <FocusView

@@ -16,6 +16,17 @@ export type CompletionDay = {
   count: number;
 };
 
+export type Subtask = {
+  id: string;
+  task_id: string;
+  title: string;
+  completed: boolean;
+  sort_order: number;
+  created_at: number; // ms
+};
+
+export type TaskFilter = "all" | "due_today" | "overdue" | "archived";
+
 export type Task = {
   id: string;
   project_id?: string | null;
@@ -35,6 +46,11 @@ export type Task = {
 
   repeat_mode?: RepeatMode | null;
   repeat_days_mask?: number | null;
+
+  // v2 fields
+  is_archived: boolean;
+  sort_order: number;
+  subtasks: Subtask[];
 };
 
 export type NewTask = {
@@ -223,6 +239,41 @@ export function complete_focus_session(sessionId: string, durationMinutes: numbe
 
 export function cancel_focus_session(sessionId: string, durationMinutes: number) {
   return invoke<void>("cancel_focus_session", { sessionId, durationMinutes });
+}
+
+// ---- Subtasks ----
+export function get_subtasks(taskId: string) {
+  return invoke<Subtask[]>("get_subtasks", { taskId });
+}
+
+export function add_subtask(taskId: string, title: string) {
+  return invoke<Subtask>("add_subtask", { taskId, title });
+}
+
+export function toggle_subtask(id: string) {
+  return invoke<boolean>("toggle_subtask", { id });
+}
+
+export function delete_subtask(id: string) {
+  return invoke<void>("delete_subtask", { id });
+}
+
+export function reorder_subtasks(subtaskIds: string[]) {
+  return invoke<void>("reorder_subtasks", { subtaskIds });
+}
+
+// ---- Archive ----
+export function archive_task(id: string) {
+  return invoke<void>("archive_task", { id });
+}
+
+export function unarchive_task(id: string) {
+  return invoke<void>("unarchive_task", { id });
+}
+
+// ---- Reorder Tasks ----
+export function reorder_tasks(taskIds: string[]) {
+  return invoke<void>("reorder_tasks", { taskIds });
 }
 
 // ---- Window ----
