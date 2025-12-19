@@ -78,7 +78,7 @@ async fn db_health(state: State<'_, AppState>) -> Result<DbHealth, String> {
 
 // --- EXPORT BACKUP ---
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 struct ExportBundle {
     version: u32,
     exported_at: i64, // ms
@@ -101,6 +101,27 @@ async fn export_data(state: State<'_, AppState>) -> Result<ExportBundle, String>
         tasks,
         settings,
     })
+}
+
+#[tauri::command]
+async fn import_data(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    bundle_json: String,
+) -> Result<(), String> {
+    let bundle: ExportBundle =
+        serde_json::from_str(&bundle_json).map_err(|e| format!("Invalid backup file: {}", e))?;
+
+    let mut db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.import_data(bundle.projects, bundle.tasks, bundle.settings)
+        .map_err(|e| e.to_string())?;
+
+    // Refresh everything
+    emit_data_changed(&app, "tasks", "refresh", None);
+    emit_data_changed(&app, "projects", "refresh", None);
+    emit_data_changed(&app, "settings", "refresh", None);
+    emit_data_changed(&app, "stats", "refresh", None);
+    Ok(())
 }
 
 // --- COMPLETION SERIES ---

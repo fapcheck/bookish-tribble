@@ -1,5 +1,4 @@
 use rusqlite::{params, Connection};
-use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 // Трейт Timelike необходим для работы методов .hour() и .minute()
