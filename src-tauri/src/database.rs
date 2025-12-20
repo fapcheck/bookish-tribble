@@ -307,6 +307,53 @@ impl AppDatabase {
             commit_migration(3)?;
         }
 
+        // Version 4: Finance (Transactions & Debts)
+        if current_version < 4 {
+            conn.execute_batch(
+                "CREATE TABLE IF NOT EXISTS transactions (
+                    id TEXT PRIMARY KEY,
+                    amount REAL NOT NULL,
+                    category TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    description TEXT,
+                    is_expense INTEGER NOT NULL DEFAULT 1
+                );
+                CREATE TABLE IF NOT EXISTS debts (
+                    id TEXT PRIMARY KEY,
+                    person TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'USD',
+                    is_owed_by_me INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    due_date INTEGER,
+                    status TEXT NOT NULL DEFAULT 'active'
+                );",
+            )
+            .map_err(|e| e.to_string())?;
+
+            commit_migration(4)?;
+        }
+
+        // Migration 5: Add detailed loan fields to debts
+        if current_version < 5 {
+            conn.execute_batch(
+                "ALTER TABLE debts ADD COLUMN start_date INTEGER;
+                 ALTER TABLE debts ADD COLUMN payment_day INTEGER;
+                 ALTER TABLE debts ADD COLUMN initial_amount REAL;",
+            )
+            .map_err(|e| e.to_string())?;
+
+            commit_migration(5)?;
+        }
+
+        // Migration 6: Add last_reminded_date to debts
+        if current_version < 6 {
+            conn.execute("ALTER TABLE debts ADD COLUMN last_reminded_date TEXT", [])
+                .map_err(|e| e.to_string())?;
+
+            commit_migration(6)?;
+        }
+
         Ok(())
     }
 
@@ -1096,6 +1143,153 @@ impl AppDatabase {
             )
             .map_err(|e| e.to_string())?;
         }
+        Ok(())
+    }
+    // --- FINANCE (TRANSACTIONS & DEBTS) ---
+
+    #[allow(dead_code)]
+    pub fn get_finance_summary(&self) -> Result<(Vec<Transaction>, Vec<Debt>), String> {
+        let conn = &self.conn;
+
+        // Transactions
+        let mut t_stmt = conn.prepare("SELECT id, amount, category, date, description, is_expense FROM transactions ORDER BY date DESC").map_err(|e| e.to_string())?;
+        let transactions = t_stmt
+            .query_map([], |row| {
+                Ok(Transaction {
+                    id: row.get(0)?,
+                    amount: row.get(1)?,
+                    category: row.get(2)?,
+                    date: row.get(3)?,
+                    description: row.get(4)?,
+                    is_expense: row.get::<_, i32>(5)? != 0,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+
+        // Debts
+        let mut d_stmt = conn.prepare("SELECT id, person, amount, currency, is_owed_by_me, created_at, due_date, status, start_date, payment_day, initial_amount FROM debts ORDER BY created_at DESC").map_err(|e| e.to_string())?;
+        let debts = d_stmt
+            .query_map([], |row| {
+                Ok(Debt {
+                    id: row.get(0)?,
+                    person: row.get(1)?,
+                    amount: row.get(2)?,
+                    currency: row.get(3)?,
+                    is_owed_by_me: row.get::<_, i32>(4)? != 0,
+                    created_at: row.get(5)?,
+                    due_date: row.get(6)?,
+                    status: row.get(7)?,
+                    start_date: row.get(8).unwrap_or(None),
+                    payment_day: row.get(9).unwrap_or(None),
+                    initial_amount: row.get(10).unwrap_or(None),
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+
+        Ok((transactions, debts))
+    }
+
+    #[allow(dead_code)]
+    pub fn add_transaction(&self, t: NewTransaction) -> Result<Transaction, String> {
+        let conn = &self.conn;
+        conn.execute(
+            "INSERT INTO transactions (id, amount, category, date, description, is_expense) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![t.id, t.amount, t.category, t.date, t.description, t.is_expense as i32]
+        ).map_err(|e| e.to_string())?;
+
+        Ok(Transaction {
+            id: t.id,
+            amount: t.amount,
+            category: t.category,
+            date: t.date,
+            description: t.description,
+            is_expense: t.is_expense,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn delete_transaction(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute("DELETE FROM transactions WHERE id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn add_debt(&self, d: NewDebt) -> Result<Debt, String> {
+        let conn = &self.conn;
+        conn.execute(
+            "INSERT INTO debts (id, person, amount, currency, is_owed_by_me, created_at, due_date, status, start_date, payment_day, initial_amount) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'active', ?8, ?9, ?10)",
+            params![d.id, d.person, d.amount, d.currency, d.is_owed_by_me as i32, d.created_at, d.due_date, d.start_date, d.payment_day, d.initial_amount]
+        ).map_err(|e| e.to_string())?;
+
+        Ok(Debt {
+            id: d.id,
+            person: d.person,
+            amount: d.amount,
+            currency: d.currency,
+            is_owed_by_me: d.is_owed_by_me,
+            created_at: d.created_at,
+            due_date: d.due_date,
+            status: "active".to_string(),
+            start_date: d.start_date,
+            payment_day: d.payment_day,
+            initial_amount: d.initial_amount,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn pay_debt(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute(
+            "UPDATE debts SET status = 'paid' WHERE id = ?1",
+            params![id],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn delete_debt(&self, id: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute("DELETE FROM debts WHERE id = ?1", params![id])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[allow(dead_code)]
+    pub fn get_active_loans(&self) -> Result<Vec<(String, String, i32, Option<String>)>, String> {
+        // id, person, payment_day, last_reminded_date
+        let conn = &self.conn;
+        let mut stmt = conn.prepare("SELECT id, person, payment_day, last_reminded_date FROM debts WHERE status = 'active' AND payment_day IS NOT NULL").map_err(|e| e.to_string())?;
+
+        let loans = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3).unwrap_or(None),
+                ))
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+
+        Ok(loans)
+    }
+
+    #[allow(dead_code)]
+    pub fn update_last_reminded(&self, id: &str, date: &str) -> Result<(), String> {
+        let conn = &self.conn;
+        conn.execute(
+            "UPDATE debts SET last_reminded_date = ?1 WHERE id = ?2",
+            params![date, id],
+        )
+        .map_err(|e| e.to_string())?;
         Ok(())
     }
 }

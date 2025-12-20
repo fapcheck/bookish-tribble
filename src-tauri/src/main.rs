@@ -7,6 +7,7 @@ use tauri::{Emitter, Manager, State, WindowEvent};
 mod database;
 mod models;
 
+use chrono::Datelike;
 use database::AppDatabase;
 use models::{AppSettings, NewTask, Priority, Project, Status, Subtask, Task, UserStats};
 
@@ -568,6 +569,119 @@ async fn minimize_window(window: tauri::Window) {
     let _ = window.minimize();
 }
 
+// --- FINANCE ---
+
+#[derive(serde::Serialize)]
+struct FinanceSummary {
+    transactions: Vec<models::Transaction>,
+    debts: Vec<models::Debt>,
+}
+
+#[tauri::command]
+async fn get_finance_summary(state: State<'_, AppState>) -> Result<FinanceSummary, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let (transactions, debts) = db.get_finance_summary().map_err(|e| e.to_string())?;
+    Ok(FinanceSummary {
+        transactions,
+        debts,
+    })
+}
+
+#[tauri::command]
+async fn add_transaction(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    amount: f64,
+    category: String,
+    date: i64,
+    description: Option<String>,
+    is_expense: bool,
+) -> Result<models::Transaction, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let t = models::NewTransaction {
+        id: id.clone(),
+        amount,
+        category,
+        date,
+        description,
+        is_expense,
+    };
+    let created = db.add_transaction(t).map_err(|e| e.to_string())?;
+
+    emit_data_changed(&app, "finance", "add_transaction", Some(id));
+    Ok(created)
+}
+
+#[tauri::command]
+async fn delete_transaction(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_transaction(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "delete_transaction", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn add_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    person: String,
+    amount: f64,
+    currency: String,
+    is_owed_by_me: bool,
+    due_date: Option<i64>,
+    start_date: Option<i64>,
+    payment_day: Option<i32>,
+    initial_amount: Option<f64>,
+) -> Result<models::Debt, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let d = models::NewDebt {
+        id: id.clone(),
+        person,
+        amount,
+        currency,
+        is_owed_by_me,
+        created_at: chrono::Utc::now().timestamp_millis(),
+        due_date,
+        start_date,
+        payment_day,
+        initial_amount,
+    };
+    let created = db.add_debt(d).map_err(|e| e.to_string())?;
+
+    emit_data_changed(&app, "finance", "add_debt", Some(id));
+    Ok(created)
+}
+
+#[tauri::command]
+async fn pay_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.pay_debt(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "pay_debt", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_debt(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "delete_debt", Some(id));
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -623,6 +737,84 @@ fn main() {
                         },
                     );
                 }
+                // Loan Reminders
+                // ---------------------------------------------------------
+                let loans = match db_guard.get_active_loans() {
+                    Ok(l) => l,
+                    Err(_) => Vec::new(), // ignore error
+                };
+
+                let today = chrono::Local::now().date_naive();
+                let today_str = today.format("%Y-%m-%d").to_string();
+
+                for (id, person, payment_day, last_reminded) in loans {
+                    if let Some(last) = last_reminded {
+                        if last == today_str {
+                            continue; // Already reminded today
+                        }
+                    }
+
+                    // Check if due in 1, 2, or 3 days
+                    // Simple logic: Construct target date for this month
+                    let target_date = match chrono::NaiveDate::from_ymd_opt(
+                        today.year(),
+                        today.month(),
+                        payment_day as u32,
+                    ) {
+                        Some(d) => d,
+                        None => continue, // Invalid date (e.g. Feb 30), skip for now
+                    };
+
+                    // If target is in past, maybe it's next month?
+                    // E.g. Today 25th, Payment 10th. Target (ThisMonth-10) is past.
+                    // We only care about UPCOMING.
+                    // Cases:
+                    // Payment 25. Today 22. Diff 3.
+                    // Payment 2. Today 30. Diff 2 (approx).
+
+                    let mut days_diff = (target_date - today).num_days();
+
+                    if days_diff < 0 {
+                        // Try next month
+                        let next_month_date = if today.month() == 12 {
+                            chrono::NaiveDate::from_ymd_opt(today.year() + 1, 1, payment_day as u32)
+                        } else {
+                            chrono::NaiveDate::from_ymd_opt(
+                                today.year(),
+                                today.month() + 1,
+                                payment_day as u32,
+                            )
+                        };
+
+                        if let Some(nm) = next_month_date {
+                            days_diff = (nm - today).num_days();
+                        }
+                    }
+
+                    if days_diff >= 1 && days_diff <= 3 {
+                        // Trigger reminder
+                        let _ = app_handle2.emit(
+                            "reminder:due",
+                            ReminderPayload {
+                                task_id: id.clone(),
+                                title: format!(
+                                    "Платеж по кредиту: {} (через {} дн.)",
+                                    person, days_diff
+                                ),
+                                deadline: None,
+                            },
+                        );
+                        // Mark as reminded
+                        let _ = db_guard.update_last_reminded(&id, &today_str);
+
+                        // Also show window if not shown
+                        if let Some(w) = app_handle2.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                }
+                // ---------------------------------------------------------
             });
 
             Ok(())
@@ -681,7 +873,14 @@ fn main() {
             cancel_focus_session,
             // window
             toggle_window,
-            minimize_window
+            minimize_window,
+            // Finance
+            get_finance_summary,
+            add_transaction,
+            delete_transaction,
+            add_debt,
+            pay_debt,
+            delete_debt
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

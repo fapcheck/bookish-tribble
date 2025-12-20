@@ -20,7 +20,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
     "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.0.0"
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

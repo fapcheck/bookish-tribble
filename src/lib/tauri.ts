@@ -292,3 +292,87 @@ export function toggle_window() {
 export function minimize_window() {
   return invoke<void>("minimize_window");
 }
+
+// ---- Finance (Transactions & Debts) ----
+
+export type Transaction = {
+  id: string;
+  amount: number;
+  category: string;
+  date: number; // ms
+  description?: string | null;
+  is_expense: boolean;
+};
+
+export type Debt = {
+  id: string;
+  person: string;
+  amount: number;
+  currency: string;
+  is_owed_by_me: boolean;
+  created_at: number; // ms
+  due_date?: number | null; // ms
+  status: "active" | "paid";
+  start_date?: number | null;
+  payment_day?: number | null;
+  initial_amount?: number | null;
+};
+
+export type FinanceSummary = {
+  transactions: Transaction[];
+  debts: Debt[];
+};
+
+export function get_finance_summary() {
+  return invoke<FinanceSummary>("get_finance_summary");
+}
+
+export function add_transaction(
+  amount: number,
+  category: string,
+  date: number,
+  isExpense: boolean,
+  description?: string
+) {
+  return invoke<Transaction>("add_transaction", {
+    amount,
+    category,
+    date,
+    is_expense: isExpense,
+    description: description ?? null,
+  });
+}
+
+export function delete_transaction(id: string) {
+  return invoke<void>("delete_transaction", { id });
+}
+
+export function add_debt(
+  person: string,
+  amount: number,
+  isOwedByMe: boolean,
+  dueDate?: number | null,
+  startDate?: number | null,
+  paymentDay?: number | null,
+  initialAmount?: number | null,
+  currency: string = "RUB"
+) {
+  return invoke<Debt>("add_debt", {
+    person,
+    amount,
+    currency,
+    is_owed_by_me: isOwedByMe,
+    due_date: dueDate ?? null,
+    start_date: startDate ?? null,
+    payment_day: paymentDay ?? null,
+    initial_amount: initialAmount ?? null,
+  });
+}
+
+export function pay_debt(id: string) {
+  return invoke<void>("pay_debt", { id });
+}
+
+export function delete_debt(id: string) {
+  return invoke<void>("delete_debt", { id });
+}

@@ -661,7 +661,16 @@ pub fn run() {
                     get_stats,
                     start_focus_session,
                     complete_focus_session,
-                    cancel_focus_session
+                    start_focus_session,
+                    complete_focus_session,
+                    cancel_focus_session,
+                    // Finance
+                    get_finance_summary,
+                    add_transaction,
+                    delete_transaction,
+                    add_debt,
+                    pay_debt,
+                    delete_debt
                 ]
             }
             #[cfg(not(mobile))]
@@ -701,6 +710,13 @@ pub fn run() {
                     start_focus_session,
                     complete_focus_session,
                     cancel_focus_session,
+                    // Finance
+                    get_finance_summary,
+                    add_transaction,
+                    delete_transaction,
+                    add_debt,
+                    pay_debt,
+                    delete_debt,
                     toggle_window,
                     minimize_window
                 ]
@@ -708,4 +724,117 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+// --- Finance Commands ---
+
+#[derive(serde::Serialize)]
+struct FinanceSummary {
+    transactions: Vec<models::Transaction>,
+    debts: Vec<models::Debt>,
+}
+
+#[tauri::command]
+async fn get_finance_summary(state: State<'_, AppState>) -> Result<FinanceSummary, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let (transactions, debts) = db.get_finance_summary().map_err(|e| e.to_string())?;
+    Ok(FinanceSummary {
+        transactions,
+        debts,
+    })
+}
+
+#[tauri::command]
+async fn add_transaction(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    amount: f64,
+    category: String,
+    date: i64,
+    description: Option<String>,
+    is_expense: bool,
+) -> Result<models::Transaction, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let t = models::NewTransaction {
+        id: id.clone(),
+        amount,
+        category,
+        date,
+        description,
+        is_expense,
+    };
+    let created = db.add_transaction(t).map_err(|e| e.to_string())?;
+
+    emit_data_changed(&app, "finance", "add_transaction", Some(id));
+    Ok(created)
+}
+
+#[tauri::command]
+async fn delete_transaction(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_transaction(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "delete_transaction", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn add_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    person: String,
+    amount: f64,
+    currency: String,
+    is_owed_by_me: bool,
+    due_date: Option<i64>,
+    start_date: Option<i64>,
+    payment_day: Option<i32>,
+    initial_amount: Option<f64>,
+) -> Result<models::Debt, String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let d = models::NewDebt {
+        id: id.clone(),
+        person,
+        amount,
+        currency,
+        is_owed_by_me,
+        created_at: chrono::Utc::now().timestamp_millis(),
+        due_date,
+        start_date,
+        payment_day,
+        initial_amount,
+    };
+    let created = db.add_debt(d).map_err(|e| e.to_string())?;
+
+    emit_data_changed(&app, "finance", "add_debt", Some(id));
+    Ok(created)
+}
+
+#[tauri::command]
+async fn pay_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.pay_debt(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "pay_debt", Some(id));
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_debt(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|_| "Failed to lock db")?;
+    db.delete_debt(&id).map_err(|e| e.to_string())?;
+    emit_data_changed(&app, "finance", "delete_debt", Some(id));
+    Ok(())
 }

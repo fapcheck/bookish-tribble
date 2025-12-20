@@ -171,3 +171,55 @@ impl Default for AppSettings {
         }
     }
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct Transaction {
+    pub id: String,
+    pub amount: f64,
+    pub category: String,
+    pub date: i64, // UNIX ms
+    pub description: Option<String>,
+    pub is_expense: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct NewTransaction {
+    pub id: String,
+    pub amount: f64,
+    pub category: String,
+    pub date: i64,
+    pub description: Option<String>,
+    pub is_expense: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct Debt {
+    pub id: String,
+    pub person: String,
+    pub amount: f64,
+    pub currency: String,
+    pub is_owed_by_me: bool, // true = I owe, false = They owe me
+    pub created_at: i64,
+    pub due_date: Option<i64>,
+    pub status: String, // "active", "paid"
+    pub start_date: Option<i64>,
+    pub payment_day: Option<i32>,
+    pub initial_amount: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct NewDebt {
+    pub id: String,
+    pub person: String,
+    pub amount: f64,
+    pub currency: String,
+    pub is_owed_by_me: bool,
+    pub created_at: i64,
+    pub due_date: Option<i64>,
+    pub start_date: Option<i64>,
+    pub payment_day: Option<i32>,
+    pub initial_amount: Option<f64>,
+}

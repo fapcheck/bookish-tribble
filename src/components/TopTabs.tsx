@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, ListChecks, Settings, StickyNote } from "lucide-react";
+import { Calendar, ListChecks, Settings, StickyNote, Wallet } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
 import ImportBackupButton from "./ImportBackupButton";
@@ -34,6 +34,12 @@ export default function TopTabs({
           onClick={() => setView("notes")}
           icon={<StickyNote size={20} />}
           label="Заметки"
+        />
+        <TabButton
+          active={view === "wallet"}
+          onClick={() => setView("wallet")}
+          icon={<Wallet size={20} />}
+          label="Финансы"
         />
         <TabButton
           active={view === "settings"}

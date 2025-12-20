@@ -23,17 +23,19 @@ export function useDatabase() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [finance, setFinance] = useState<tauri.FinanceSummary>({ transactions: [], debts: [] });
   const [isLoaded, setIsLoaded] = useState(false);
 
   const mountedRef = useRef(false);
   const reloadScheduledRef = useRef(false);
 
   const loadData = useCallback(async () => {
-    const [tasksData, projectsData, statsData, settingsData] = await Promise.all([
+    const [tasksData, projectsData, statsData, settingsData, financeData] = await Promise.all([
       tauri.get_tasks({ limit: 1000, statusFilter: null, projectFilter: null }),
       tauri.get_projects(),
       tauri.get_stats(),
       tauri.get_settings(),
+      tauri.get_finance_summary(),
     ]);
 
     if (!mountedRef.current) return;
@@ -42,6 +44,7 @@ export function useDatabase() {
     setProjects(projectsData);
     setStats(statsData);
     setSettings(settingsData);
+    setFinance(financeData);
     setIsLoaded(true);
   }, []);
 
@@ -231,6 +234,70 @@ export function useDatabase() {
     [loadData]
   );
 
+  // Finance Methods
+  const refreshFinance = useCallback(async () => {
+    try {
+      const data = await tauri.get_finance_summary();
+      if (mountedRef.current) setFinance(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const addTransaction = useCallback(async (amount: number, category: string, date: number, isExpense: boolean, description?: string) => {
+    try {
+      await tauri.add_transaction(amount, category, date, isExpense, description);
+      refreshFinance();
+    } catch (e) {
+      console.error(e);
+    }
+  }, [refreshFinance]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    try {
+      await tauri.delete_transaction(id);
+      refreshFinance();
+    } catch (e) {
+      console.error(e);
+    }
+  }, [refreshFinance]);
+
+  const addDebt = useCallback(async (
+    person: string,
+    amount: number,
+    isOwedByMe: boolean,
+    dueDate?: number | null,
+    startDate?: number | null,
+    paymentDay?: number | null,
+    initialAmount?: number | null,
+    currency: string = "RUB"
+  ) => {
+    try {
+      await tauri.add_debt(person, amount, isOwedByMe, dueDate, startDate, paymentDay, initialAmount, currency);
+      refreshFinance();
+    } catch (e) {
+      console.error(e);
+    }
+  }, [refreshFinance]);
+
+  const payDebt = useCallback(async (id: string) => {
+    try {
+      await tauri.pay_debt(id);
+      refreshFinance();
+    } catch (e) {
+      console.error(e);
+    }
+  }, [refreshFinance]);
+
+  const deleteDebt = useCallback(async (id: string) => {
+    try {
+      await tauri.delete_debt(id);
+      refreshFinance();
+    } catch (e) {
+      console.error(e);
+    }
+  }, [refreshFinance]);
+
   return {
     tasks,
     projects,
@@ -258,6 +325,15 @@ export function useDatabase() {
     minimizeWindow,
 
     refreshTasks: loadData,
+    refreshFinance,
     importData,
+
+    // Finance
+    finance,
+    addTransaction,
+    deleteTransaction,
+    addDebt,
+    payDebt,
+    deleteDebt,
   };
 }

@@ -13,6 +13,7 @@ import SettingsView from "./views/SettingsView";
 import FocusView from "./views/FocusView";
 import WeeklyReviewView from "./views/WeeklyReviewView";
 import NotesView from "./views/NotesView";
+import { WalletView } from "./views/WalletView";
 
 import { sortTasksForFocus } from "./utils/tasks";
 
@@ -40,6 +41,13 @@ export default function App() {
     deleteProject,
 
     importData,
+
+    finance,
+    addTransaction,
+    deleteTransaction,
+    addDebt,
+    payDebt,
+    deleteDebt,
   } = useDatabase();
 
   const [view, setView] = useState<View>("main");
@@ -108,6 +116,17 @@ export default function App() {
             addProject={addProject}
             deleteProject={deleteProject}
             editProject={editProject}
+          />
+        )}
+
+        {view === "wallet" && (
+          <WalletView
+            finance={finance}
+            addTransaction={addTransaction}
+            deleteTransaction={deleteTransaction}
+            addDebt={addDebt}
+            payDebt={payDebt}
+            deleteDebt={deleteDebt}
           />
         )}
 
