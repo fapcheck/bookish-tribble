@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
     Folder, FolderPlus, FileText, Plus, X, ChevronRight,
-    Trash2, Edit3, MoreHorizontal, GripVertical, Hash
+    Trash2, Edit3, MoreHorizontal, Hash
 } from "lucide-react";
 import type { Project } from "../hooks/useDatabase";
 import type { Priority } from "../lib/tauri";
@@ -19,12 +19,14 @@ function ItemMenu({
     onDelete,
     onRename,
     onDuplicate,
-    showDuplicate = false
+    showDuplicate = false,
+    renameLabel = "Переименовать"
 }: {
     onDelete: () => void;
-    onRename: () => void;
+    onRename?: () => void;
     onDuplicate?: () => void;
     showDuplicate?: boolean;
+    renameLabel?: string;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -50,12 +52,14 @@ function ItemMenu({
 
             {isOpen && (
                 <div className="absolute right-0 top-full mt-1 bg-[#1e293b] border border-slate-700/50 rounded-xl shadow-2xl py-1.5 z-50 min-w-[160px] backdrop-blur-xl">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onRename(); setIsOpen(false); }}
-                        className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 flex items-center gap-3 transition-colors"
-                    >
-                        <Edit3 size={14} className="text-slate-500" /> Переименовать
-                    </button>
+                    {onRename && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onRename(); setIsOpen(false); }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700/50 flex items-center gap-3 transition-colors"
+                        >
+                            <Edit3 size={14} className="text-slate-500" /> {renameLabel}
+                        </button>
+                    )}
 
                     {showDuplicate && onDuplicate && (
                         <button
@@ -80,7 +84,7 @@ function ItemMenu({
     );
 }
 
-// Beautiful note item
+// Beautiful note item with expand/collapse functionality
 function NoteItem({
     note,
     onDelete,
@@ -90,49 +94,132 @@ function NoteItem({
     onDelete: () => void;
     onEdit: (name: string) => void;
 }) {
-    const [isRenaming, setIsRenaming] = useState(false);
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [editedContent, setEditedContent] = useState(note.name);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea when content changes
+    useEffect(() => {
+        if (textareaRef.current && isExpanded) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [editedContent, isExpanded]);
+
+    // Sync editedContent with note.name when it changes externally
+    useEffect(() => {
+        setEditedContent(note.name);
+    }, [note.name]);
+
+    const handleSave = () => {
+        if (editedContent.trim() !== note.name) {
+            onEdit(editedContent.trim());
+        }
+    };
+
+    const toggleExpand = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isExpanded) {
+            handleSave();
+        }
+        setIsExpanded(!isExpanded);
+    };
 
     return (
-        <div className="group flex items-center gap-4 px-5 py-4 hover:bg-slate-800/40 rounded-2xl transition-all cursor-pointer border border-transparent hover:border-slate-700/50">
-            {/* Drag handle (visual only for now) */}
-            <div className="text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-                <GripVertical size={16} />
-            </div>
+        <div className={`group rounded-2xl transition-all border ${isExpanded ? 'bg-slate-800/60 border-slate-700/70' : 'hover:bg-slate-800/40 border-transparent hover:border-slate-700/50'}`}>
+            {/* Header row - only when collapsed */}
+            {!isExpanded && (
+                <div
+                    className="flex items-center gap-4 px-5 py-4 cursor-pointer"
+                    onClick={toggleExpand}
+                >
+                    {/* Expand/Collapse chevron */}
+                    <button
+                        onClick={toggleExpand}
+                        className="text-slate-600 hover:text-slate-400 transition-colors"
+                    >
+                        <div className="transform transition-transform duration-200">
+                            <ChevronRight size={16} />
+                        </div>
+                    </button>
 
-            {/* Note icon with accent */}
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg">
-                <FileText size={22} className="text-slate-400" />
-            </div>
+                    {/* Note icon with accent */}
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-slate-700 to-slate-800">
+                        <FileText size={22} className="text-slate-400" />
+                    </div>
 
-            {/* Note content */}
-            <div className="flex-1 min-w-0">
-                {isRenaming ? (
-                    <input
-                        autoFocus
-                        defaultValue={note.name}
-                        onBlur={(e) => { onEdit(e.target.value); setIsRenaming(false); }}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") { onEdit(e.currentTarget.value); setIsRenaming(false); }
-                            if (e.key === "Escape") setIsRenaming(false);
-                        }}
-                        className="w-full bg-slate-800 rounded-lg px-2 py-1.5 text-base text-white outline-none border border-slate-600 focus:border-indigo-500"
-                    />
-                ) : (
-                    <div className="text-base font-medium text-slate-200 truncate px-2 py-1.5 border border-transparent">{note.name}</div>
-                )}
+                    {/* Note preview/title */}
+                    <div className="flex-1 min-w-0">
+                        <div className="text-base font-medium text-slate-200 px-2 py-1.5 border border-transparent truncate">
+                            {note.name}
+                        </div>
 
-                {/* Creation date */}
-                <div className="text-sm text-slate-500 mt-1">
-                    {new Date(note.created_at).toLocaleDateString("ru-RU", {
-                        day: "numeric",
-                        month: "long",
-                        year: note.created_at < Date.now() - 365 * 24 * 60 * 60 * 1000 ? "numeric" : undefined
-                    })}
+                        {/* Creation date */}
+                        <div className="text-sm text-slate-500 mt-1 px-2">
+                            {new Date(note.created_at).toLocaleDateString("ru-RU", {
+                                day: "numeric",
+                                month: "long",
+                                year: note.created_at < Date.now() - 365 * 24 * 60 * 60 * 1000 ? "numeric" : undefined
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <ItemMenu onDelete={onDelete} onRename={() => setIsExpanded(true)} renameLabel="Редактировать" />
                 </div>
-            </div>
+            )}
 
-            {/* Actions */}
-            <ItemMenu onDelete={onDelete} onRename={() => setIsRenaming(true)} />
+            {/* Expanded content - editable textarea with collapse button */}
+            {isExpanded && (
+                <div className="px-5 py-4">
+                    <div className="flex items-start gap-3 mb-3">
+                        {/* Collapse chevron */}
+                        <button
+                            onClick={toggleExpand}
+                            className="text-slate-500 hover:text-slate-300 transition-colors mt-1"
+                        >
+                            <div className="transform rotate-90 transition-transform duration-200">
+                                <ChevronRight size={16} />
+                            </div>
+                        </button>
+
+                        {/* Note icon */}
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-indigo-600 to-indigo-700 shrink-0">
+                            <FileText size={18} className="text-white" />
+                        </div>
+
+                        {/* Date and actions row */}
+                        <div className="flex-1 flex items-center justify-between">
+                            <div className="text-sm text-slate-500">
+                                {new Date(note.created_at).toLocaleDateString("ru-RU", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: note.created_at < Date.now() - 365 * 24 * 60 * 60 * 1000 ? "numeric" : undefined
+                                })}
+                            </div>
+                            <ItemMenu onDelete={onDelete} />
+                        </div>
+                    </div>
+
+                    {/* Full editable content */}
+                    <div className="ml-[52px]">
+                        <textarea
+                            ref={textareaRef}
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            onBlur={handleSave}
+                            placeholder="Введите содержимое заметки..."
+                            className="w-full bg-slate-900/50 rounded-xl px-4 py-3 text-base text-slate-200 outline-none border border-slate-700/50 focus:border-indigo-500/50 resize-none min-h-[120px] placeholder-slate-600 leading-relaxed"
+                            style={{ height: 'auto' }}
+                        />
+                        <div className="flex items-center justify-between mt-2 text-xs text-slate-600">
+                            <span>{editedContent.length} символов</span>
+                            <span className="text-slate-700">Изменения сохраняются автоматически</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
