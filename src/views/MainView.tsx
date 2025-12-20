@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Coffee, CornerDownLeft, Flame, Inbox, Layers, Play, Plus, Sparkles, Zap, X } from "lucide-react";
-import type { Priority } from "../types/ui";
+import { Coffee, CornerDownLeft, Flame, Folder, FolderPlus, Inbox, Layers, Play, Plus, Search, Sparkles, Zap, X } from "lucide-react";
+import type { Priority } from "../lib/tauri";
 import type { Project, Task } from "../hooks/useDatabase";
 import type { TaskFilter } from "../lib/tauri";
 import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
 import TrelloColumn from "../components/TrelloColumn";
-import SearchBar from "../components/SearchBar";
+
 import { sortTasksForFocus } from "../utils/tasks";
 import { parseNaturalLanguage } from "../utils/naturalLanguage";
 
@@ -37,7 +37,7 @@ export default function MainView(props: {
   updateTaskTags: (id: string, tags: string[]) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 
-  addProject: (name: string, color: string, priority: Priority) => Promise<any>;
+  addProject: (name: string, color: string, priority: Priority, parentId?: string | null, isFolder?: boolean) => Promise<any>;
   editProject: (id: string, name: string) => Promise<void>;
   updateProjectPriority: (id: string, priority: Priority) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -73,6 +73,7 @@ export default function MainView(props: {
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectPriority, setNewProjectPriority] = useState<Priority>("normal");
+  const [isNewProjectFolder, setIsNewProjectFolder] = useState(false);
 
   const [addingTaskToProject, setAddingTaskToProject] = useState<string | null>(null);
 
@@ -130,9 +131,13 @@ export default function MainView(props: {
   const inboxTasks = useMemo(() => displayedTasks.filter((t) => !t.project_id), [displayedTasks]);
 
   const displayedProjects = useMemo(() => {
-    if (filterProject !== "all" && filterProject !== "inbox") return projects.filter((p) => p.id === filterProject);
-    return projects;
-  }, [projects, filterProject]);
+    // If a specific project is selected, always show it
+    if (filterProject !== "all" && filterProject !== "inbox") {
+      return projects.filter((p) => p.id === filterProject);
+    }
+    // In 'all' view, only show projects that have visible tasks (avoid empty columns)
+    return projects.filter((p) => displayedTasks.some((t) => t.project_id === p.id));
+  }, [projects, filterProject, displayedTasks]);
 
   const focusQueue = useMemo(() => {
     let queue = tasks.filter((t) => t.status !== "done");
@@ -143,11 +148,7 @@ export default function MainView(props: {
     return sortTasksForFocus(queue);
   }, [tasks, filterProject]);
 
-  const currentProjectName = useMemo(() => {
-    if (filterProject === "all" || filterProject === "inbox") return "Входящие";
-    const p = projects.find((p) => p.id === filterProject);
-    return p ? p.name : "Входящие";
-  }, [filterProject, projects]);
+
 
   const cycleProjectPriority = (p: Priority): Priority => (p === "low" ? "normal" : p === "normal" ? "high" : "low");
 
@@ -157,11 +158,12 @@ export default function MainView(props: {
 
     const colors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#6366f1", "#a855f7", "#ec4899", "#71717a"];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    await addProject(newProjectName, randomColor, newProjectPriority);
+    await addProject(newProjectName, randomColor, newProjectPriority, null, isNewProjectFolder);
 
     setNewProjectName("");
     setNewProjectPriority("normal");
     setIsAddingProject(false);
+    setIsNewProjectFolder(false);
   };
 
   const handleQuickAdd = async (e: React.FormEvent) => {
@@ -206,70 +208,124 @@ export default function MainView(props: {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-3 border-b border-white/5 flex gap-2 overflow-x-auto bg-[#020617]">
+      <div className="px-6 py-2 border-b border-white/5 flex items-center gap-2 overflow-x-auto bg-[#020617]">
+        {/* Project filters */}
         <button
-          onClick={() => setFilterProject("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${filterProject === "all"
-            ? "bg-indigo-600 border-indigo-500 text-white"
-            : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+          onClick={() => { setFilterProject("all"); setTaskFilter("all"); }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 ${filterProject === "all" && taskFilter === "all"
+            ? "bg-indigo-600 text-white"
+            : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
             }`}
         >
           <Layers size={12} /> Все
         </button>
 
         <button
-          onClick={() => setFilterProject("inbox")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border shrink-0 ${filterProject === "inbox"
-            ? "bg-slate-700 border-slate-600 text-white"
-            : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+          onClick={() => { setFilterProject("inbox"); setTaskFilter("all"); }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 ${filterProject === "inbox" && taskFilter === "all"
+            ? "bg-slate-700 text-white"
+            : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
             }`}
         >
           <Inbox size={12} /> Входящие
         </button>
 
+        {/* Folder separator for projects */}
+        {projects.length > 0 && (
+          <>
+            <div className="w-px h-4 bg-slate-800 mx-1 shrink-0" />
+            <div className="flex items-center gap-1 text-slate-600 shrink-0">
+              <Folder size={12} />
+            </div>
+          </>
+        )}
+
         {projects.map((p) => (
           <button
             key={p.id}
-            onClick={() => setFilterProject(p.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 border whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white border-slate-600" : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"
+            onClick={() => { setFilterProject(p.id); setTaskFilter("all"); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
               }`}
           >
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
             {p.name}
-            {p.priority === "high" && <Zap size={10} className="text-red-400" />}
-            {p.priority === "normal" && <Sparkles size={10} className="text-blue-400" />}
-            {p.priority === "low" && <Coffee size={10} className="text-emerald-400" />}
           </button>
         ))}
-      </div>
 
-      {/* Search & Filter bar */}
-      <div className="px-6 py-2 bg-[#0f172a]/30 border-b border-white/5">
-        <div className="max-w-[1600px] mx-auto">
-          <SearchBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filter={taskFilter}
-            setFilter={setTaskFilter}
+        {/* Divider */}
+        <div className="w-px h-4 bg-slate-800 mx-1 shrink-0" />
+
+        {/* Status filters */}
+        <button
+          onClick={() => setTaskFilter("due_today")}
+          className={`px-2.5 py-1 rounded-md text-xs transition-colors shrink-0 ${taskFilter === "due_today"
+            ? "bg-amber-600/20 text-amber-400"
+            : "text-slate-600 hover:text-slate-400"
+            }`}
+        >
+          Сегодня
+        </button>
+
+        <button
+          onClick={() => setTaskFilter("overdue")}
+          className={`px-2.5 py-1 rounded-md text-xs transition-colors shrink-0 ${taskFilter === "overdue"
+            ? "bg-red-600/20 text-red-400"
+            : "text-slate-600 hover:text-slate-400"
+            }`}
+        >
+          Просрочено
+        </button>
+
+        <button
+          onClick={() => setTaskFilter("archived")}
+          className={`px-2.5 py-1 rounded-md text-xs transition-colors shrink-0 ${taskFilter === "archived"
+            ? "bg-slate-600/20 text-slate-400"
+            : "text-slate-600 hover:text-slate-400"
+            }`}
+        >
+          Архив
+        </button>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Search input */}
+        <div className="relative shrink-0">
+          <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-600" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск..."
+            className="w-32 bg-slate-900/50 border border-slate-800 rounded-lg pl-7 pr-2 py-1 text-xs text-slate-300 placeholder-slate-600 outline-none focus:border-slate-600 focus:w-48 transition-all"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400"
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="px-6 py-4 bg-[#0f172a]/50 border-b border-white/5">
+      {/* Quick Add Bar */}
+      <div className="px-4 md:px-6 py-3 md:py-4 bg-[#0f172a]/50 border-b border-white/5">
         <div className="max-w-[1600px] mx-auto">
           <form onSubmit={handleQuickAdd} className="relative flex items-center group">
-            <div className="absolute left-4 text-slate-500">
-              <Plus size={20} />
+            <div className="absolute left-3 md:left-4 text-slate-500 pointer-events-none">
+              <Plus size={18} className="md:w-5 md:h-5" />
             </div>
 
             <input
               value={quickAddTitle}
               onChange={(e) => setQuickAddTitle(e.target.value)}
-              placeholder={`Быстро добавить задачу в ${currentProjectName}...`}
-              className="w-full bg-slate-900/80 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 rounded-xl py-3 pl-12 pr-32 text-slate-200 placeholder-slate-500 outline-none transition-all shadow-sm"
+              placeholder="Добавить задачу..."
+              className="w-full bg-slate-900/80 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 rounded-xl py-2.5 md:py-3 pl-10 md:pl-12 pr-32 md:pr-40 text-sm md:text-base text-slate-200 placeholder-slate-500 outline-none transition-all shadow-sm"
             />
 
-            <div className="absolute right-2 flex items-center gap-1">
+            <div className="absolute right-1.5 md:right-2 flex items-center gap-1">
               {(["low", "normal", "high"] as const).map((p) => (
                 <button
                   key={p}
@@ -277,6 +333,7 @@ export default function MainView(props: {
                   onClick={() => setQuickAddPriority(p)}
                   className={`p-1.5 rounded-lg transition-all ${quickAddPriority === p ? "bg-slate-700 text-white shadow-sm" : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
                     }`}
+                  title={p === "high" ? "Высокий" : p === "normal" ? "Обычный" : "Низкий"}
                 >
                   {p === "high" ? (
                     <Zap size={16} className={quickAddPriority === p ? "text-red-400" : ""} />
@@ -288,9 +345,13 @@ export default function MainView(props: {
                 </button>
               ))}
 
-              <div className="w-px h-4 bg-slate-700 mx-1" />
+              <div className="hidden md:block w-px h-4 bg-slate-700 mx-1" />
 
-              <button type="submit" className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">
+              <button
+                type="submit"
+                disabled={!quickAddTitle.trim()}
+                className="hidden md:flex p-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+              >
                 <CornerDownLeft size={16} />
               </button>
             </div>
@@ -298,27 +359,28 @@ export default function MainView(props: {
         </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-        <div className="max-w-[1600px] mx-auto pb-20 space-y-8">
+
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6">
+        <div className="max-w-[1600px] mx-auto pb-20 space-y-4 md:space-y-8">
           {focusQueue.length > 0 && (
-            <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 rounded-2xl border border-indigo-500/20 p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 rounded-2xl border border-indigo-500/20 p-4 md:p-6 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
                   <Flame size={14} /> Следующая задача
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-1">{focusQueue[0].title}</h2>
-                <p className="text-slate-500 text-sm">и ещё {Math.max(0, focusQueue.length - 1)} в очереди</p>
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-1 line-clamp-1">{focusQueue[0].title}</h2>
+                <p className="text-slate-500 text-xs md:text-sm">и ещё {Math.max(0, focusQueue.length - 1)} в очереди</p>
               </div>
               <button
                 onClick={onStartFocus}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+                className="px-4 md:px-6 py-2 md:py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-sm md:text-base shrink-0"
               >
-                <Play size={18} /> Фокус
+                <Play size={16} className="md:w-[18px] md:h-[18px]" /> Фокус
               </button>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+          <div className="flex flex-wrap gap-4 md:gap-6 items-start [&>*]:flex-1 [&>*]:min-w-full md:[&>*]:min-w-[350px] [&>*]:max-w-full">
             {(filterProject === "all" || filterProject === "inbox") && (
               <TrelloColumn title="Входящие" count={inboxTasks.length} color="#94a3b8">
                 <div className="space-y-2">
@@ -418,12 +480,20 @@ export default function MainView(props: {
           {filterProject === "all" && (
             <div className="pt-4 border-t border-white/5">
               {!isAddingProject ? (
-                <button
-                  onClick={() => setIsAddingProject(true)}
-                  className="w-full py-4 rounded-xl border border-dashed border-slate-800 hover:border-slate-600 hover:bg-slate-900/50 flex items-center justify-center gap-2 text-slate-600 hover:text-slate-300 transition-all"
-                >
-                  <Plus size={18} /> Создать новый проект
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setIsAddingProject(true); setIsNewProjectFolder(false); }}
+                    className="flex-1 py-4 rounded-xl border border-dashed border-slate-800 hover:border-slate-600 hover:bg-slate-900/50 flex items-center justify-center gap-2 text-slate-600 hover:text-slate-300 transition-all"
+                  >
+                    <Plus size={18} /> Новый проект
+                  </button>
+                  <button
+                    onClick={() => { setIsAddingProject(true); setIsNewProjectFolder(true); }}
+                    className="py-4 px-6 rounded-xl border border-dashed border-slate-800 hover:border-amber-700 hover:bg-amber-900/20 flex items-center justify-center gap-2 text-slate-600 hover:text-amber-400 transition-all"
+                  >
+                    <FolderPlus size={18} /> Папка
+                  </button>
+                </div>
               ) : (
                 <form onSubmit={handleAddProject} className="flex flex-col gap-4 bg-[#0f172a] p-4 rounded-xl border border-white/10">
                   <div className="flex gap-2">

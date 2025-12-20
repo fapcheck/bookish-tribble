@@ -10,8 +10,8 @@ function endOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 function startOfWeekMonday(d: Date) {
-  const day = d.getDay(); 
-  const diff = (day + 6) % 7; 
+  const day = d.getDay();
+  const diff = (day + 6) % 7;
   const out = new Date(d);
   out.setDate(d.getDate() - diff);
   out.setHours(0, 0, 0, 0);
@@ -138,10 +138,10 @@ export default function CalendarView({ tasks }: { tasks: Task[] }) {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-2 text-xs text-slate-500 mb-3">
+          <div className="grid grid-cols-7 gap-1 md:gap-2 text-[10px] md:text-xs text-slate-500 mb-2 md:mb-3">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (<div key={d} className="text-center">{d}</div>))}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 md:gap-2">
             {grid.map((d) => {
               const inMonth = d >= monthStart && d <= monthEnd;
               const key = dayKey(d);
@@ -151,17 +151,24 @@ export default function CalendarView({ tasks }: { tasks: Task[] }) {
               const isToday = sameDay(d, today);
               const hasOverdue = dayTasks.some((t) => (t.deadline ?? 0) < Date.now() && t.status !== "done");
               return (
-                <button key={key} onClick={() => setSelected(d)} className={["rounded-xl border p-2 text-left h-[92px] transition-colors", inMonth ? "bg-slate-900/40 border-slate-800 hover:bg-slate-900/70" : "bg-transparent border-transparent", isSel ? "ring-2 ring-indigo-500/50" : ""].join(" ")}>
-                  <div className="flex items-center justify-between">
-                    <div className={["text-sm font-semibold", isToday ? "text-indigo-300" : inMonth ? "text-slate-200" : "text-slate-600"].join(" ")}>{d.getDate()}</div>
+                <button key={key} onClick={() => setSelected(d)} className={["rounded-lg md:rounded-xl border p-1 md:p-2 text-left h-16 md:h-[92px] transition-colors flex flex-col justify-between", inMonth ? "bg-slate-900/40 border-slate-800 hover:bg-slate-900/70" : "bg-transparent border-transparent opacity-50", isSel ? "ring-1 md:ring-2 ring-indigo-500/50" : ""].join(" ")}>
+                  <div className="flex items-center justify-between w-full">
+                    <div className={["text-xs md:text-sm font-semibold", isToday ? "text-indigo-300" : inMonth ? "text-slate-200" : "text-slate-600"].join(" ")}>{d.getDate()}</div>
                     {count > 0 && (
-                      <div className={["text-[10px] px-2 py-0.5 rounded-full border", hasOverdue ? "bg-red-500/10 border-red-500/20 text-red-300" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-300"].join(" ")}>{count}</div>
+                      <div className={["text-[9px] md:text-[10px] px-1 md:px-2 py-0.5 rounded-full border", hasOverdue ? "bg-red-500/10 border-red-500/20 text-red-300" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-300"].join(" ")}>{count}</div>
                     )}
                   </div>
                   {count > 0 && (
-                    <div className="mt-2 space-y-1">
+                    <div className="hidden md:block mt-1 space-y-1">
                       {dayTasks.slice(0, 2).map((t) => (<div key={t.id} className="text-[11px] text-slate-400 truncate">{t.title}</div>))}
                       {count > 2 && (<div className="text-[10px] text-slate-500">+{count - 2} more</div>)}
+                    </div>
+                  )}
+                  {count > 0 && (
+                    <div className="md:hidden flex gap-0.5 mt-auto">
+                      {Array.from({ length: Math.min(count, 3) }).map((_, i) => (
+                        <div key={i} className={`w-1 h-1 rounded-full ${hasOverdue ? "bg-red-400" : "bg-indigo-400"}`} />
+                      ))}
                     </div>
                   )}
                 </button>
@@ -196,10 +203,10 @@ export default function CalendarView({ tasks }: { tasks: Task[] }) {
                       <button onClick={() => setReminderAtDeadline(t)} disabled={!t.deadline} className={`px-3 py-2 rounded-xl text-xs border ${t.deadline ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-200" : "bg-slate-900/40 text-slate-600 cursor-not-allowed"}`}>Remind</button>
                       <button onClick={() => clearReminder(t)} className="px-3 py-2 rounded-xl text-xs border bg-slate-900/40 border-slate-800 text-slate-300">Clear</button>
                       <input type="date" defaultValue={t.deadline ? toDateInputValue(t.deadline) : toDateInputValue(selected.getTime())} onChange={(e) => {
-                          const val = e.target.value; if (!val) return;
-                          const d = new Date(val); const current = t.deadline ? new Date(t.deadline) : new Date(selected);
-                          const out = new Date(d.getFullYear(), d.getMonth(), d.getDate(), current.getHours() || 9, current.getMinutes() || 0, 0, 0);
-                          tauri.update_task_deadline(t.id, out.getTime());
+                        const val = e.target.value; if (!val) return;
+                        const d = new Date(val); const current = t.deadline ? new Date(t.deadline) : new Date(selected);
+                        const out = new Date(d.getFullYear(), d.getMonth(), d.getDate(), current.getHours() || 9, current.getMinutes() || 0, 0, 0);
+                        tauri.update_task_deadline(t.id, out.getTime());
                       }} className="ml-auto bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none" />
                     </div>
                   </div>

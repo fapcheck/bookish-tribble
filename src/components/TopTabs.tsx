@@ -1,5 +1,5 @@
 import React from "react";
-import { BarChart3, Calendar, ClipboardList, ListChecks, Settings } from "lucide-react";
+import { Calendar, ListChecks, Settings, StickyNote } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
 import ImportBackupButton from "./ImportBackupButton";
@@ -15,41 +15,35 @@ export default function TopTabs({
   if (view === "focus") return null;
 
   return (
-    <header className="px-6 py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50">
-      <div className="flex items-center gap-2">
+    <header className="px-4 md:px-6 py-3 md:py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50 gap-4">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade flex-1">
         <TabButton
           active={view === "main"}
           onClick={() => setView("main")}
-          icon={<ListChecks size={18} />}
+          icon={<ListChecks size={20} />}
           label="Задачи"
         />
         <TabButton
           active={view === "calendar"}
           onClick={() => setView("calendar")}
-          icon={<Calendar size={18} />}
+          icon={<Calendar size={20} />}
           label="Календарь"
         />
         <TabButton
-          active={view === "review"}
-          onClick={() => setView("review")}
-          icon={<ClipboardList size={18} />}
-          label="Обзор"
-        />
-        <TabButton
-          active={view === "stats"}
-          onClick={() => setView("stats")}
-          icon={<BarChart3 size={18} />}
-          label="Статистика"
+          active={view === "notes"}
+          onClick={() => setView("notes")}
+          icon={<StickyNote size={20} />}
+          label="Заметки"
         />
         <TabButton
           active={view === "settings"}
           onClick={() => setView("settings")}
-          icon={<Settings size={18} />}
+          icon={<Settings size={20} />}
           label="Настройки"
         />
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="hidden md:flex items-center gap-1">
         <ImportBackupButton />
         <ExportBackupButton />
       </div>
@@ -71,13 +65,14 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium ${active
-        ? "bg-slate-800 border-slate-600 text-white"
-        : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+      className={`px-3 md:px-4 py-2 md:py-2.5 rounded-xl border transition-all flex items-center gap-2 text-sm font-medium shrink-0 ${active
+        ? "bg-slate-800 border-slate-600 text-white shadow-sm shadow-slate-900/50"
+        : "bg-slate-900/50 border-transparent text-slate-400 hover:bg-slate-800 hover:text-slate-200"
         }`}
     >
       {icon}
-      {label}
+      <span className="hidden md:inline">{label}</span>
+      {/* On mobile, standard size is larger for touch targets, but we hide label */}
     </button>
   );
 }

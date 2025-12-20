@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { RotateCcw, Save } from "lucide-react";
+import { BarChart3, ClipboardList, Cloud, Download, RefreshCw, RotateCcw, Save, Upload } from "lucide-react";
 import type { AppSettings } from "../hooks/useDatabase";
+import type { View } from "../types/ui";
+import * as sync from "../lib/supabase";
 
 function clampInt(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(v)));
@@ -9,12 +11,23 @@ function clampInt(v: number, min: number, max: number) {
 export default function SettingsView({
   settings,
   onSave,
+  setView,
+  tasks,
+  projects,
+  onImport,
 }: {
   settings: AppSettings;
   onSave: (s: AppSettings) => Promise<void>;
+  setView: (v: View) => void;
+  tasks?: unknown[];
+  projects?: unknown[];
+  onImport?: (data: { projects: unknown[]; tasks: unknown[]; settings: unknown }) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<AppSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<string | null>(localStorage.getItem('focusflow_last_sync'));
 
   const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(settings), [draft, settings]);
 
@@ -71,9 +84,8 @@ export default function SettingsView({
             <button
               onClick={handleSave}
               disabled={!isDirty || isSaving}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                !isDirty || isSaving ? "bg-slate-800/50 text-slate-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"
-              }`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${!isDirty || isSaving ? "bg-slate-800/50 text-slate-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                }`}
               title="Save"
             >
               <Save size={16} />
@@ -81,6 +93,120 @@ export default function SettingsView({
             </button>
           </div>
         </div>
+
+        {/* Quick Access Section */}
+        <section className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-5">
+          <h2 className="text-white font-bold mb-4">Дополнительно</h2>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setView("review")}
+              className="flex-1 flex items-center gap-3 bg-slate-900/50 border border-slate-700 hover:border-slate-500 rounded-xl px-4 py-3 text-slate-300 hover:text-white transition-colors"
+            >
+              <ClipboardList size={20} className="text-indigo-400" />
+              <div className="text-left">
+                <div className="font-medium">Обзор</div>
+                <div className="text-xs text-slate-500">Еженедельный отчёт</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setView("stats")}
+              className="flex-1 flex items-center gap-3 bg-slate-900/50 border border-slate-700 hover:border-slate-500 rounded-xl px-4 py-3 text-slate-300 hover:text-white transition-colors"
+            >
+              <BarChart3 size={20} className="text-emerald-400" />
+              <div className="text-left">
+                <div className="font-medium">Статистика</div>
+                <div className="text-xs text-slate-500">Прогресс и достижения</div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* Cloud Sync Section */}
+        <section className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-5">
+          <h2 className="text-white font-bold mb-4 flex items-center gap-2">
+            <Cloud size={20} className="text-sky-400" />
+            Cloud Sync
+          </h2>
+
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Sync your data across all devices. Push your data to cloud or pull from another device.
+            </p>
+
+            {syncStatus && (
+              <div className={`text-sm px-3 py-2 rounded-lg ${syncStatus.includes('Error') ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                {syncStatus}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  if (!tasks || !projects) return;
+                  setIsSyncing(true);
+                  setSyncStatus(null);
+                  try {
+                    await sync.syncToCloud({ projects, tasks, settings });
+                    const now = new Date().toLocaleString('ru-RU');
+                    localStorage.setItem('focusflow_last_sync', now);
+                    setLastSync(now);
+                    setSyncStatus('✓ Данные загружены в облако');
+                  } catch (e) {
+                    setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing || !tasks || !projects}
+                className="flex-1 flex items-center justify-center gap-2 bg-sky-600/20 hover:bg-sky-600/30 disabled:opacity-50 text-sky-400 py-3 rounded-xl transition-colors"
+              >
+                <Upload size={18} />
+                {isSyncing ? 'Загрузка...' : 'Push to Cloud'}
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (!onImport) return;
+                  setIsSyncing(true);
+                  setSyncStatus(null);
+                  try {
+                    const data = await sync.pullLatestSync();
+                    if (data) {
+                      await onImport({
+                        projects: data.projects,
+                        tasks: data.tasks,
+                        settings: data.settings,
+                      });
+                      const now = new Date().toLocaleString('ru-RU');
+                      localStorage.setItem('focusflow_last_sync', now);
+                      setLastSync(now);
+                      setSyncStatus('✓ Данные загружены с облака');
+                    } else {
+                      setSyncStatus('No data in cloud yet. Push first!');
+                    }
+                  } catch (e) {
+                    setSyncStatus(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing || !onImport}
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/30 disabled:opacity-50 text-indigo-400 py-3 rounded-xl transition-colors"
+              >
+                <Download size={18} />
+                {isSyncing ? 'Загрузка...' : 'Pull from Cloud'}
+              </button>
+            </div>
+
+            {lastSync && (
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <RefreshCw size={12} />
+                Последняя синхронизация: {lastSync}
+              </div>
+            )}
+          </div>
+        </section>
 
         <section className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-5">
           <h2 className="text-white font-bold mb-4">Timer</h2>

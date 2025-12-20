@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDatabase } from "./hooks/useDatabase";
-import type { Priority, View } from "./types/ui";
+import type { Priority } from "./lib/tauri";
+import type { View } from "./types/ui";
 
 import TopTabs from "./components/TopTabs";
 import ReminderToast from "./components/ReminderToast";
@@ -11,6 +12,7 @@ import StatsView from "./views/StatsView";
 import SettingsView from "./views/SettingsView";
 import FocusView from "./views/FocusView";
 import WeeklyReviewView from "./views/WeeklyReviewView";
+import NotesView from "./views/NotesView";
 
 import { sortTasksForFocus } from "./utils/tasks";
 
@@ -36,6 +38,8 @@ export default function App() {
     editProject,
     updateProjectPriority,
     deleteProject,
+
+    importData,
   } = useDatabase();
 
   const [view, setView] = useState<View>("main");
@@ -94,9 +98,18 @@ export default function App() {
 
         {view === "stats" && stats ? <StatsView stats={stats} /> : null}
 
-        {view === "settings" && settings ? <SettingsView settings={settings} onSave={saveSettings} /> : null}
+        {view === "settings" && settings ? <SettingsView settings={settings} onSave={saveSettings} setView={setView} tasks={tasks} projects={projects} onImport={importData} /> : null}
 
         {view === "review" && <WeeklyReviewView />}
+
+        {view === "notes" && (
+          <NotesView
+            projects={projects}
+            addProject={addProject}
+            deleteProject={deleteProject}
+            editProject={editProject}
+          />
+        )}
 
         {view === "focus" && (
           <FocusView

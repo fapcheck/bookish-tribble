@@ -46,7 +46,9 @@ pub struct Project {
     pub name: String,
     pub color: String,
     pub priority: Priority,
-    pub created_at: i64, // UNIX ms
+    pub created_at: i64,           // UNIX ms
+    pub parent_id: Option<String>, // For folder hierarchy
+    pub is_folder: bool,           // True if this is a folder, false if regular project
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

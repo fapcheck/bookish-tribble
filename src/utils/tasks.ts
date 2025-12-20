@@ -1,4 +1,4 @@
-import type { Priority } from "../types/ui";
+import type { Priority } from "../lib/tauri";
 
 export const PRIORITY_WEIGHT: Record<Priority, number> = {
   high: 3,

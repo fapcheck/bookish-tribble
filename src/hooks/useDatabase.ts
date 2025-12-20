@@ -86,8 +86,8 @@ export function useDatabase() {
   );
 
   const addProject = useCallback(
-    async (name: string, color: string, priority: Priority) => {
-      const project = await tauri.add_project(name, color, priority);
+    async (name: string, color: string, priority: Priority, parentId: string | null = null, isFolder: boolean = false) => {
+      const project = await tauri.add_project(name, color, priority, parentId, isFolder);
       scheduleReload();
       return project;
     },
@@ -217,6 +217,20 @@ export function useDatabase() {
     await tauri.minimize_window();
   }, []);
 
+  const importData = useCallback(
+    async (data: { projects: unknown[]; tasks: unknown[]; settings: unknown }) => {
+      await tauri.import_data(JSON.stringify({
+        version: 1,
+        exported_at: Date.now(),
+        projects: data.projects,
+        tasks: data.tasks,
+        settings: data.settings,
+      }));
+      await loadData();
+    },
+    [loadData]
+  );
+
   return {
     tasks,
     projects,
@@ -244,5 +258,6 @@ export function useDatabase() {
     minimizeWindow,
 
     refreshTasks: loadData,
+    importData,
   };
 }

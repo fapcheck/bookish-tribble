@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Coffee, Pencil, Sparkles, Trash2, Zap } from "lucide-react";
-import type { Priority } from "../types/ui";
+import { ChevronRight, Coffee, Pencil, Sparkles, Trash2, Zap } from "lucide-react";
+import type { Priority } from "../lib/tauri";
 
 export default function TrelloColumn({
   title,
@@ -11,6 +11,7 @@ export default function TrelloColumn({
   onEditName,
   priority,
   onCyclePriority,
+  defaultExpanded = true,
 }: {
   title: string;
   count: number;
@@ -20,9 +21,11 @@ export default function TrelloColumn({
   onEditName?: (newName: string) => void;
   priority?: Priority;
   onCyclePriority?: () => void;
+  defaultExpanded?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const handleSave = () => {
     if (onEditName && editValue.trim() && editValue !== title) {
@@ -38,9 +41,20 @@ export default function TrelloColumn({
   }, [priority]);
 
   return (
-    <div className="bg-[#0f172a]/80 rounded-2xl border border-white/5 p-4 shadow-xl flex flex-col h-fit">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3 flex-1">
+    <div className={`bg-[#0f172a]/80 rounded-2xl border border-white/5 shadow-xl flex flex-col transition-all ${isExpanded ? "h-fit" : ""
+      }`}>
+      {/* Header - clickable to expand/collapse */}
+      <div
+        className={`flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/30 transition-colors ${isExpanded ? "" : "rounded-2xl"
+          }`}
+        onClick={() => !isEditing && setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Chevron indicator */}
+          <div className={`text-slate-600 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}>
+            <ChevronRight size={16} />
+          </div>
+
           <div
             className="w-3 h-3 rounded-full shrink-0"
             style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}40` }}
@@ -54,6 +68,7 @@ export default function TrelloColumn({
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleSave}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <>
@@ -65,7 +80,7 @@ export default function TrelloColumn({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {onCyclePriority && priority && (
             <button
               onClick={onCyclePriority}
@@ -101,7 +116,13 @@ export default function TrelloColumn({
         </div>
       </div>
 
-      <div className="flex-1">{children}</div>
+      {/* Collapsible content */}
+      <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        }`}>
+        <div className="px-4 pb-4">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

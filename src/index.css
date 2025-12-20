@@ -6,7 +6,7 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  
+
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.9);
 }
@@ -16,16 +16,35 @@ body {
   min-width: 320px;
   min-height: 100vh;
   /* Deep Slate Background instead of Pure Black */
-  background-color: #020617; /* Slate 950 */
-  background-image: 
+  background-color: #020617;
+  /* Slate 950 */
+  background-image:
     radial-gradient(at 0% 0%, rgba(30, 41, 59, 0.3) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(30, 41, 59, 0.3) 0px, transparent 50%);
   background-attachment: fixed;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mask-linear-fade {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
 
 /* Glass effect softened */
 .glass {
-  background: rgba(30, 41, 59, 0.4); /* Slate 800 with opacity */
+  background: rgba(30, 41, 59, 0.4);
+  /* Slate 800 with opacity */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -37,13 +56,18 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #334155; /* Slate 700 */
+  background: #334155;
+  /* Slate 700 */
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569; /* Slate 600 */
+  background: #475569;
+  /* Slate 600 */
 }

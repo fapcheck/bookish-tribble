@@ -1,5 +1,5 @@
 import { Calendar, Coffee, Plus, Sparkles, Tag, Zap } from "lucide-react";
-import type { Priority } from "../types/ui";
+import type { Priority } from "../lib/tauri";
 
 export default function AddTaskForm({
   projectId,
@@ -65,9 +65,8 @@ export default function AddTaskForm({
                   key={p}
                   type="button"
                   onClick={() => setPriority(p)}
-                  className={`p-1.5 rounded ${
-                    priority === p ? "bg-slate-600 text-white" : "text-slate-500 hover:text-slate-300"
-                  }`}
+                  className={`p-1.5 rounded ${priority === p ? "bg-slate-600 text-white" : "text-slate-500 hover:text-slate-300"
+                    }`}
                 >
                   {p === "high" ? (
                     <Zap size={14} className="text-red-400" />
@@ -87,11 +86,10 @@ export default function AddTaskForm({
                 onChange={(e) => setDeadline(e.target.value)}
               />
               <div
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md border ${
-                  deadline
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-md border ${deadline
                     ? "bg-slate-700 border-slate-600 text-white"
                     : "bg-[#1e293b] border-slate-700 text-slate-500 hover:text-slate-300"
-                }`}
+                  }`}
               >
                 <Calendar size={14} />
                 {deadline && <span className="text-[10px]">{new Date(deadline).toLocaleDateString()}</span>}

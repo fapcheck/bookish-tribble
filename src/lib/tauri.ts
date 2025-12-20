@@ -78,6 +78,8 @@ export type Project = {
   color: string;
   priority: Priority;
   created_at: number; // ms
+  parent_id?: string | null; // For folder hierarchy
+  is_folder: boolean; // True if this is a folder, false if regular project
 };
 
 export type UserStats = {
@@ -207,8 +209,14 @@ export function get_projects() {
   return invoke<Project[]>("get_projects");
 }
 
-export function add_project(name: string, color: string, priority: Priority) {
-  return invoke<Project>("add_project", { name, color, priority });
+export function add_project(
+  name: string,
+  color: string,
+  priority: Priority,
+  parentId: string | null = null,
+  isFolder: boolean = false
+) {
+  return invoke<Project>("add_project", { name, color, priority, parentId, isFolder });
 }
 
 export function edit_project(id: string, name: string) {

@@ -266,6 +266,47 @@ impl AppDatabase {
             commit_migration(2)?;
         }
 
+        // Version 3: Folder hierarchy for projects
+        if current_version < 3 {
+            // Add parent_id column to projects
+            let has_parent_id = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('projects') WHERE name='parent_id'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_parent_id {
+                conn.execute(
+                    "ALTER TABLE projects ADD COLUMN parent_id TEXT DEFAULT NULL",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+
+            // Add is_folder column to projects
+            let has_is_folder = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('projects') WHERE name='is_folder'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_is_folder {
+                conn.execute(
+                    "ALTER TABLE projects ADD COLUMN is_folder INTEGER NOT NULL DEFAULT 0",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+
+            commit_migration(3)?;
+        }
+
         Ok(())
     }
 
@@ -372,7 +413,7 @@ impl AppDatabase {
         let conn = &self.conn;
         let mut stmt = conn
             .prepare(
-                "SELECT id, name, color, priority, created_at FROM projects ORDER BY priority DESC",
+                "SELECT id, name, color, priority, created_at, parent_id, is_folder FROM projects ORDER BY priority DESC",
             )
             .map_err(|e| e.to_string())?;
         let rows = stmt
@@ -383,6 +424,8 @@ impl AppDatabase {
                     color: row.get(2)?,
                     priority: Priority::from_int(row.get(3)?),
                     created_at: row.get(4)?,
+                    parent_id: row.get(5)?,
+                    is_folder: row.get::<_, i32>(6)? != 0,
                 })
             })
             .map_err(|e| e.to_string())?;
@@ -399,17 +442,21 @@ impl AppDatabase {
         name: String,
         color: String,
         priority: Priority,
+        parent_id: Option<String>,
+        is_folder: bool,
     ) -> Result<Project, String> {
         let conn = &self.conn;
         let now = chrono::Utc::now().timestamp_millis();
-        conn.execute("INSERT INTO projects (id, name, color, priority, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, name, color, priority as i32, now]).map_err(|e| e.to_string())?;
+        conn.execute("INSERT INTO projects (id, name, color, priority, created_at, parent_id, is_folder) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![id, name, color, priority as i32, now, parent_id, is_folder as i32]).map_err(|e| e.to_string())?;
         Ok(Project {
             id,
             name,
             color,
             priority,
             created_at: now,
+            parent_id,
+            is_folder,
         })
     }
 
@@ -447,7 +494,7 @@ impl AppDatabase {
         project_id: Option<String>,
     ) -> Result<Vec<Task>, String> {
         let conn = &self.conn;
-        let mut query = "SELECT id, project_id, title, description, priority, status, created_at, completed_at, deadline, estimated_minutes, actual_minutes, tags, remind_at, reminded_at, repeat_mode, repeat_days_mask FROM tasks WHERE 1=1".to_string();
+        let mut query = "SELECT id, project_id, title, description, priority, status, created_at, completed_at, deadline, estimated_minutes, actual_minutes, tags, remind_at, reminded_at, repeat_mode, repeat_days_mask, is_archived, sort_order FROM tasks WHERE 1=1".to_string();
 
         // Build dynamic parameters
         let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -491,8 +538,8 @@ impl AppDatabase {
                     reminded_at: row.get(13)?,
                     repeat_mode: row.get(14)?,
                     repeat_days_mask: row.get(15)?,
-                    is_archived: false,
-                    sort_order: 0,
+                    is_archived: row.get::<_, i32>(16)? != 0,
+                    sort_order: row.get(17)?,
                     subtasks: Vec::new(),
                 })
             })

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Archive, Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
-import type { Priority } from "../types/ui";
+import type { Priority } from "../lib/tauri";
 import type { Task } from "../hooks/useDatabase";
 import type { Subtask } from "../lib/tauri";
 import * as tauri from "../lib/tauri";

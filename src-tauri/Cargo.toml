@@ -9,6 +9,10 @@ default-run = "focusflow-tauri"
 edition = "2021"
 rust-version = "1.70"
 
+[lib]
+name = "focusflow_tauri_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2.0.0", features = [] }
 

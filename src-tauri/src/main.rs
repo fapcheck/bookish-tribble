@@ -209,6 +209,8 @@ async fn add_project(
     name: String,
     color: String,
     priority: String,
+    parent_id: Option<String>,
+    is_folder: bool,
 ) -> Result<Project, String> {
     let db = state.db.lock().map_err(|_| "Failed to lock db")?;
     let id = uuid::Uuid::new_v4().to_string();
@@ -220,7 +222,7 @@ async fn add_project(
     };
 
     let project = db
-        .add_project(id.clone(), name, color, priority_enum)
+        .add_project(id.clone(), name, color, priority_enum, parent_id, is_folder)
         .map_err(|e| e.to_string())?;
 
     emit_data_changed(&app, "projects", "add", Some(id));
