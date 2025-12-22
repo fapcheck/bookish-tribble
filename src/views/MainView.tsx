@@ -6,6 +6,7 @@ import type { Project, Task } from "../hooks/useDatabase";
 import type { TaskFilter } from "../lib/tauri";
 import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
+import Things3TaskRow from "../components/Things3TaskRow";
 import TrelloColumn from "../components/TrelloColumn";
 
 
@@ -45,6 +46,7 @@ export default function MainView(props: {
   deleteProject: (id: string) => Promise<void>;
 
   onStartFocus: () => void;
+  mobileSection?: "inbox" | "today" | "upcoming" | "anytime" | "someday" | "logbook";
 }) {
   const {
     tasks,
@@ -202,7 +204,28 @@ export default function MainView(props: {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 overflow-x-auto bg-[#020617] no-scrollbar">
+      {/* Mobile: Things 3 style header */}
+      <div className="md:hidden px-5 py-4 bg-[#1c1c1e]">
+        <div className="flex items-center gap-3">
+          {props.mobileSection === "today" && <span className="text-2xl">★</span>}
+          {props.mobileSection === "inbox" && <span className="text-xl text-blue-400">📥</span>}
+          {props.mobileSection === "upcoming" && <span className="text-xl text-red-400">📅</span>}
+          {props.mobileSection === "anytime" && <span className="text-xl text-cyan-400">⏰</span>}
+          {props.mobileSection === "someday" && <span className="text-xl text-purple-400">🌙</span>}
+          {props.mobileSection === "logbook" && <span className="text-xl text-green-400">📚</span>}
+          <h1 className="text-2xl font-bold text-white capitalize">
+            {props.mobileSection === "today" ? "Today" :
+              props.mobileSection === "inbox" ? "Inbox" :
+                props.mobileSection === "upcoming" ? "Upcoming" :
+                  props.mobileSection === "anytime" ? "Anytime" :
+                    props.mobileSection === "someday" ? "Someday" :
+                      props.mobileSection === "logbook" ? "Logbook" : "Tasks"}
+          </h1>
+        </div>
+      </div>
+
+      {/* Desktop: Full filter bar */}
+      <div className="hidden md:flex px-6 py-4 border-b border-white/5 items-center gap-3 overflow-x-auto bg-[#020617] no-scrollbar">
         {/* Project filters */}
         <button
           onClick={() => { setFilterProject("all"); setTaskFilter("all"); }}

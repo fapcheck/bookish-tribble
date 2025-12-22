@@ -9,6 +9,7 @@ import ReminderToast from "./components/ReminderToast";
 
 import MobileFAB from "./components/MobileFAB";
 import MobileAddTaskModal from "./components/MobileAddTaskModal";
+import MobileSidebar, { type MobileSection } from "./components/MobileSidebar";
 
 import MainView from "./views/MainView";
 import CalendarView from "./views/CalendarView";
@@ -57,10 +58,33 @@ export default function App() {
 
   const [view, setView] = useState<View>("main");
   const [showMobileAdd, setShowMobileAdd] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileSection, setMobileSection] = useState<MobileSection>("today");
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const [filterPriority, setFilterPriority] = useState<"all" | Priority>("all");
   const [filterProject, setFilterProject] = useState<"all" | "inbox" | string>("all");
   const [showCompleted, setShowCompleted] = useState(false);
+
+  // Sync mobileSection with filterProject
+  const handleSelectSection = (section: MobileSection) => {
+    setMobileSection(section);
+    setSelectedProjectId(null);
+    if (section === "inbox") {
+      setFilterProject("inbox");
+    } else if (section === "logbook") {
+      setShowCompleted(true);
+      setFilterProject("all");
+    } else {
+      setShowCompleted(false);
+      setFilterProject("all");
+    }
+  };
+
+  const handleSelectProject = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setFilterProject(projectId);
+  };
 
   const focusQueue = useMemo(() => {
     let queue = tasks.filter((t) => t.status !== "done");
@@ -76,10 +100,26 @@ export default function App() {
   if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 flex flex-col h-screen overflow-hidden">
+    <div className="min-h-screen bg-[#1c1c1e] text-slate-200 flex flex-col h-screen overflow-hidden">
       <ReminderToast onDoneTask={(id) => updateTaskStatus(id, "done")} />
 
       <TopTabs view={view} setView={setView} streak={stats?.current_streak ?? 0} />
+
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        currentSection={mobileSection}
+        onSelectSection={handleSelectSection}
+        projects={projects}
+        onSelectProject={handleSelectProject}
+        selectedProjectId={selectedProjectId}
+        onAddProject={() => {
+          // Could open a modal here; for now just close sidebar
+          setSidebarOpen(false);
+        }}
+        setView={setView}
+      />
 
       <div className="flex-1 overflow-hidden pb-[70px] md:pb-0">
         {view === "main" && (
@@ -106,6 +146,7 @@ export default function App() {
             updateProjectPriority={updateProjectPriority}
             deleteProject={deleteProject}
             onStartFocus={() => setView("focus")}
+            mobileSection={mobileSection}
           />
         )}
 
@@ -146,7 +187,7 @@ export default function App() {
         )}
       </div>
 
-      <BottomNav view={view} setView={setView} />
+      <BottomNav view={view} onOpenSidebar={() => setSidebarOpen(true)} />
 
       {/* Mobile Quick Add */}
       {view === "main" && (
