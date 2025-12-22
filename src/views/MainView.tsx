@@ -249,6 +249,29 @@ export default function MainView(props: {
         {/* Divider */}
         <div className="w-px h-4 bg-slate-800 mx-1 shrink-0" />
 
+        {/* Mobile Focus Filters (integrated into scroll) */}
+        <div className="md:hidden flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => { props.setFilterPriority("high"); onStartFocus(); }}
+            className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 active:bg-red-500/30 transition-colors"
+          >
+            <Zap size={14} />
+          </button>
+          <button
+            onClick={() => { props.setFilterPriority("normal"); onStartFocus(); }}
+            className="w-7 h-7 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 active:bg-indigo-500/30 transition-colors"
+          >
+            <Sparkles size={14} />
+          </button>
+          <button
+            onClick={() => { props.setFilterPriority("low"); onStartFocus(); }}
+            className="w-7 h-7 rounded-full bg-teal-500/10 text-teal-500 flex items-center justify-center border border-teal-500/20 active:bg-teal-500/30 transition-colors"
+          >
+            <Coffee size={14} />
+          </button>
+          <div className="w-px h-4 bg-slate-800 mx-1" />
+        </div>
+
         {/* Status filters */}
         <button
           onClick={() => setTaskFilter("due_today")}
@@ -357,97 +380,35 @@ export default function MainView(props: {
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6">
         <div className="max-w-[1600px] mx-auto pb-20 space-y-4 md:space-y-8">
           {/* Priority Focus Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-            {/* Urgent Focus - High Priority */}
-            {(() => {
-              const urgentTasks = tasks.filter(t => t.priority === "high" && t.status !== "done" && !t.is_archived);
-              return (
-                <button
-                  onClick={() => {
-                    props.setFilterPriority("high");
-                    onStartFocus();
-                  }}
-                  disabled={urgentTasks.length === 0}
-                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 via-orange-600/20 to-amber-600/10 border border-red-500/30 rounded-2xl" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-red-500/30 flex items-center justify-center">
-                        <Zap size={16} className="text-red-400" />
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-red-400">Срочный</span>
-                    </div>
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Urgent Focus</h3>
-                    <p className="text-sm text-red-300/70">{urgentTasks.length} задач</p>
-                  </div>
-                </button>
-              );
-            })()}
-
-            {/* Normal Focus - Normal Priority */}
-            {(() => {
-              const normalTasks = tasks.filter(t => t.priority === "normal" && t.status !== "done" && !t.is_archived);
-              return (
-                <button
-                  onClick={() => {
-                    props.setFilterPriority("normal");
-                    onStartFocus();
-                  }}
-                  disabled={normalTasks.length === 0}
-                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-violet-600/10 border border-indigo-500/30 rounded-2xl" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-500/30 flex items-center justify-center">
-                        <Sparkles size={16} className="text-indigo-400" />
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Обычный</span>
-                    </div>
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Normal Focus</h3>
-                    <p className="text-sm text-indigo-300/70">{normalTasks.length} задач</p>
-                  </div>
-                </button>
-              );
-            })()}
-
-            {/* Deep Focus - Low Priority */}
-            {(() => {
-              const deepTasks = tasks.filter(t => t.priority === "low" && t.status !== "done" && !t.is_archived);
-              return (
-                <button
-                  onClick={() => {
-                    props.setFilterPriority("low");
-                    onStartFocus();
-                  }}
-                  disabled={deepTasks.length === 0}
-                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-teal-600/30 via-emerald-600/20 to-green-600/10 border border-teal-500/30 rounded-2xl" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-teal-500/30 flex items-center justify-center">
-                        <Coffee size={16} className="text-teal-400" />
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-teal-400">Глубокий</span>
-                    </div>
-                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Deep Focus</h3>
-                    <p className="text-sm text-teal-300/70">{deepTasks.length} задач</p>
-                  </div>
-                </button>
-              );
-            })()}
-          </div>
+          {/* Focus filters */}
+          <div className="md:hidden w-px h-4 bg-slate-800 mx-1 shrink-0" />
+          <button
+            onClick={() => { setFilterPriority("high"); onStartFocus(); }}
+            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "high"
+              ? "bg-red-500/20 text-red-400 border border-red-500/30"
+              : "text-slate-500 hover:text-red-400 hover:bg-slate-900"
+              }`}
+          >
+            <Zap size={12} /> Срочно
+          </button>
+          <button
+            onClick={() => { setFilterPriority("normal"); onStartFocus(); }}
+            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "normal"
+              ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+              : "text-slate-500 hover:text-indigo-400 hover:bg-slate-900"
+              }`}
+          >
+            <Sparkles size={12} /> Обычный
+          </button>
+          <button
+            onClick={() => { setFilterPriority("low"); onStartFocus(); }}
+            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "low"
+              ? "bg-teal-500/20 text-teal-400 border border-teal-500/30"
+              : "text-slate-500 hover:text-teal-400 hover:bg-slate-900"
+              }`}
+          >
+            <Coffee size={12} /> Глубокий
+          </button>
 
           <div className="flex flex-wrap gap-4 md:gap-6 items-start [&>*]:flex-1 [&>*]:min-w-full md:[&>*]:min-w-[350px] [&>*]:max-w-full">
             {(filterProject === "all" || filterProject === "inbox") && (

@@ -41,8 +41,9 @@ export default function TrelloColumn({
   }, [priority]);
 
   return (
-    <div className={`bg-[#0f172a]/80 rounded-2xl border border-white/5 shadow-xl flex flex-col transition-all ${isExpanded ? "h-fit" : ""
-      }`}>
+    <div className={`flex flex-col transition-all ${isExpanded ? "h-fit" : ""}
+      md:bg-[#0f172a]/80 md:rounded-2xl md:border md:border-white/5 md:shadow-xl
+    `}>
       {/* Header - clickable to expand/collapse */}
       <div
         className={`flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/30 transition-colors ${isExpanded ? "" : "rounded-2xl"

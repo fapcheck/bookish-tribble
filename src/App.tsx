@@ -4,6 +4,7 @@ import type { Priority } from "./lib/tauri";
 import type { View } from "./types/ui";
 
 import TopTabs from "./components/TopTabs";
+import BottomNav from "./components/BottomNav";
 import ReminderToast from "./components/ReminderToast";
 
 import MainView from "./views/MainView";
@@ -76,7 +77,7 @@ export default function App() {
 
       <TopTabs view={view} setView={setView} streak={stats?.current_streak ?? 0} />
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden pb-[70px] md:pb-0">
         {view === "main" && (
           <MainView
             tasks={tasks}
@@ -140,6 +141,8 @@ export default function App() {
           />
         )}
       </div>
+
+      <BottomNav view={view} setView={setView} />
     </div>
   );
 }

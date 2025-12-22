@@ -182,7 +182,11 @@ export default function TaskCard({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.4, ease: "easeOut" } }}
       className={[
-        "group bg-[#1e293b] hover:bg-[#283548] p-3 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-colors relative shadow-sm card-glow",
+        "group relative transition-all duration-200",
+        // Desktop: keep card look but cleaner
+        "md:bg-[#1e293b] md:hover:bg-[#283548] md:p-3 md:rounded-xl md:border md:border-slate-700/50 md:shadow-sm",
+        // Mobile: minimal list item look
+        "py-3 border-b border-white/5 last:border-0",
         elevated ? "z-50" : "z-0",
         celebrating ? "animate-success-flash" : "",
       ].join(" ")}
@@ -264,7 +268,7 @@ export default function TaskCard({
           </motion.button>
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-0.5">
           {isEditingTitle ? (
             <textarea
               autoFocus
@@ -501,7 +505,7 @@ export default function TaskCard({
 
       {accentColor && (
         <div
-          className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full opacity-70 pointer-events-none"
+          className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full opacity-70 pointer-events-none md:block hidden"
           style={{ backgroundColor: accentColor }}
         />
       )}

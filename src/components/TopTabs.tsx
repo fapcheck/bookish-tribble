@@ -17,7 +17,7 @@ export default function TopTabs({
   if (view === "focus") return null;
 
   return (
-    <header className="px-4 md:px-6 py-3 md:py-4 flex justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50 gap-4">
+    <header className="hidden md:flex px-4 md:px-6 py-3 md:py-4 justify-between items-center bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 shrink-0 z-50 gap-4">
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mask-linear-fade flex-1">
         <TabButton
           active={view === "main"}
