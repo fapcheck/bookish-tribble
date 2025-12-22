@@ -121,6 +121,7 @@ export default function App() {
           setShowMobileAddProject(true);
         }}
         setView={setView}
+        currentView={view}
       />
 
       <div className="flex-1 overflow-hidden pb-[70px] md:pb-0">
