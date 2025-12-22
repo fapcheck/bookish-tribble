@@ -9,6 +9,7 @@ import ReminderToast from "./components/ReminderToast";
 
 import MobileFAB from "./components/MobileFAB";
 import MobileAddTaskModal from "./components/MobileAddTaskModal";
+import MobileAddProjectModal from "./components/MobileAddProjectModal";
 import MobileSidebar, { type MobileSection } from "./components/MobileSidebar";
 
 import MainView from "./views/MainView";
@@ -58,6 +59,7 @@ export default function App() {
 
   const [view, setView] = useState<View>("main");
   const [showMobileAdd, setShowMobileAdd] = useState(false);
+  const [showMobileAddProject, setShowMobileAddProject] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<MobileSection>("today");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -115,8 +117,8 @@ export default function App() {
         onSelectProject={handleSelectProject}
         selectedProjectId={selectedProjectId}
         onAddProject={() => {
-          // Could open a modal here; for now just close sidebar
           setSidebarOpen(false);
+          setShowMobileAddProject(true);
         }}
         setView={setView}
       />
@@ -199,6 +201,14 @@ export default function App() {
         onClose={() => setShowMobileAdd(false)}
         onAdd={async (title, priority, deadline, tags) => {
           await addTask(title, priority, undefined, undefined, deadline, tags);
+        }}
+      />
+
+      <MobileAddProjectModal
+        isOpen={showMobileAddProject}
+        onClose={() => setShowMobileAddProject(false)}
+        onAdd={async (name, color) => {
+          await addProject(name, color, "normal");
         }}
       />
     </div>
