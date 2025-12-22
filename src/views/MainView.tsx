@@ -202,34 +202,34 @@ export default function MainView(props: {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-2 border-b border-white/5 flex items-center gap-2 overflow-x-auto bg-[#020617]">
+      <div className="px-6 py-3 border-b border-white/5 flex items-center gap-3 overflow-x-auto bg-[#020617] no-scrollbar">
         {/* Project filters */}
         <button
           onClick={() => { setFilterProject("all"); setTaskFilter("all"); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 ${filterProject === "all" && taskFilter === "all"
-            ? "bg-indigo-600 text-white"
-            : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shrink-0 ${filterProject === "all" && taskFilter === "all"
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
         >
-          <Layers size={12} /> Все
+          <Layers size={16} /> Всё
         </button>
 
         <button
           onClick={() => { setFilterProject("inbox"); setTaskFilter("all"); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0 ${filterProject === "inbox" && taskFilter === "all"
-            ? "bg-slate-700 text-white"
-            : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shrink-0 ${filterProject === "inbox" && taskFilter === "all"
+            ? "bg-slate-700 text-white shadow-lg shadow-black/20"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
         >
-          <Inbox size={12} /> Входящие
+          <Inbox size={16} /> Входящие
         </button>
 
         {/* Folder separator for projects */}
         {projects.length > 0 && (
           <>
-            <div className="w-px h-4 bg-slate-800 mx-1 shrink-0" />
+            <div className="w-px h-6 bg-slate-800 mx-1 shrink-0" />
             <div className="flex items-center gap-1 text-slate-600 shrink-0">
-              <Folder size={12} />
+              <Folder size={16} />
             </div>
           </>
         )}
@@ -238,16 +238,16 @@ export default function MainView(props: {
           <button
             key={p.id}
             onClick={() => { setFilterProject(p.id); setTaskFilter("all"); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
           >
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+            <div className="w-2.5 h-2.5 rounded-full ring-2 ring-white/10" style={{ backgroundColor: p.color }} />
             {p.name}
           </button>
         ))}
 
         {/* Divider */}
-        <div className="w-px h-4 bg-slate-800 mx-1 shrink-0" />
+        <div className="w-px h-6 bg-slate-800 mx-1 shrink-0" />
 
         {/* Mobile Focus Filters (integrated into scroll) */}
         <div className="md:hidden flex items-center gap-1.5 shrink-0">
@@ -381,33 +381,33 @@ export default function MainView(props: {
         <div className="max-w-[1600px] mx-auto pb-20 space-y-4 md:space-y-8">
           {/* Priority Focus Cards */}
           {/* Focus filters */}
-          <div className="md:hidden w-px h-4 bg-slate-800 mx-1 shrink-0" />
+          <div className="md:hidden w-px h-6 bg-slate-800 mx-2 shrink-0" />
           <button
             onClick={() => { props.setFilterPriority("high"); onStartFocus(); }}
-            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "high"
+            className={`hidden md:flex flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${filterPriority === "high"
               ? "bg-red-500/20 text-red-400 border border-red-500/30"
               : "text-slate-500 hover:text-red-400 hover:bg-slate-900"
               }`}
           >
-            <Zap size={12} /> Срочно
+            <Zap size={16} /> Срочно
           </button>
           <button
             onClick={() => { props.setFilterPriority("normal"); onStartFocus(); }}
-            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "normal"
+            className={`hidden md:flex flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${filterPriority === "normal"
               ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
               : "text-slate-500 hover:text-indigo-400 hover:bg-slate-900"
               }`}
           >
-            <Sparkles size={12} /> Обычный
+            <Sparkles size={16} /> Обычный
           </button>
           <button
             onClick={() => { props.setFilterPriority("low"); onStartFocus(); }}
-            className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "low"
+            className={`hidden md:flex flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${filterPriority === "low"
               ? "bg-teal-500/20 text-teal-400 border border-teal-500/30"
               : "text-slate-500 hover:text-teal-400 hover:bg-slate-900"
               }`}
           >
-            <Coffee size={12} /> Глубокий
+            <Coffee size={16} /> Глубокий
           </button>
 
           <div className="flex flex-wrap gap-4 md:gap-6 items-start [&>*]:flex-1 [&>*]:min-w-full md:[&>*]:min-w-[350px] [&>*]:max-w-full">

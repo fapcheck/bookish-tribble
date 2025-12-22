@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Tag, Zap, X } from "lucide-react";
+import { Calendar, Zap, X } from "lucide-react";
 import type { Priority } from "../lib/tauri";
 import { parseNaturalLanguage } from "../utils/naturalLanguage";
 
@@ -80,8 +80,8 @@ export default function MobileAddTaskModal({
                                     type="button"
                                     onClick={() => setPriority("high")}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${priority === "high"
-                                            ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                            : "bg-slate-800/50 text-slate-400 border border-transparent"
+                                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        : "bg-slate-800/50 text-slate-400 border border-transparent"
                                         }`}
                                 >
                                     <Zap size={14} /> Срочно
@@ -90,8 +90,8 @@ export default function MobileAddTaskModal({
                                     type="button"
                                     onClick={() => setPriority("normal")}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${priority === "normal"
-                                            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                            : "bg-slate-800/50 text-slate-400 border border-transparent"
+                                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                        : "bg-slate-800/50 text-slate-400 border border-transparent"
                                         }`}
                                 >
                                     <Zap size={14} /> Обычно
@@ -100,8 +100,8 @@ export default function MobileAddTaskModal({
                                     type="button"
                                     onClick={() => setPriority("low")}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${priority === "low"
-                                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                            : "bg-slate-800/50 text-slate-400 border border-transparent"
+                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                        : "bg-slate-800/50 text-slate-400 border border-transparent"
                                         }`}
                                 >
                                     <Zap size={14} /> Не к спеху
