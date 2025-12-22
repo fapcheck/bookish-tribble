@@ -34,6 +34,7 @@ export default function App() {
     updateTaskStatus,
     updateTaskTags,
     deleteTask,
+    archiveTask,
 
     addProject,
     editProject,
@@ -73,7 +74,7 @@ export default function App() {
     <div className="min-h-screen bg-[#020617] text-slate-200 flex flex-col h-screen overflow-hidden">
       <ReminderToast onDoneTask={(id) => updateTaskStatus(id, "done")} />
 
-      <TopTabs view={view} setView={setView} />
+      <TopTabs view={view} setView={setView} streak={stats?.current_streak ?? 0} />
 
       <div className="flex-1 overflow-hidden">
         {view === "main" && (
@@ -94,6 +95,7 @@ export default function App() {
             updateTaskStatus={updateTaskStatus}
             updateTaskTags={updateTaskTags}
             deleteTask={deleteTask}
+            archiveTask={archiveTask}
             addProject={addProject}
             editProject={editProject}
             updateProjectPriority={updateProjectPriority}
@@ -104,9 +106,9 @@ export default function App() {
 
         {view === "calendar" && <CalendarView tasks={tasks} />}
 
-        {view === "stats" && stats ? <StatsView stats={stats} /> : null}
+        {view === "stats" && stats && <StatsView stats={stats} />}
 
-        {view === "settings" && settings ? <SettingsView settings={settings} onSave={saveSettings} setView={setView} tasks={tasks} projects={projects} onImport={importData} /> : null}
+        {view === "settings" && settings && <SettingsView settings={settings} onSave={saveSettings} setView={setView} tasks={tasks} projects={projects} onImport={importData} />}
 
         {view === "review" && <WeeklyReviewView />}
 

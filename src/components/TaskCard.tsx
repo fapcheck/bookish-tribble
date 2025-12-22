@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { Archive, Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Archive, Bell, Calendar, Clock, Flame, Pencil, Tag, Trash2, Zap } from "lucide-react";
 import type { Priority } from "../lib/tauri";
 import type { Task } from "../hooks/useDatabase";
 import type { Subtask } from "../lib/tauri";
 import * as tauri from "../lib/tauri";
 import SubtaskList from "./SubtaskList";
+import { ConfettiBurst } from "./Confetti";
 
 function tomorrowAt9LocalMs() {
   const d = new Date();
@@ -32,6 +33,7 @@ export default function TaskCard({
   onUpdatePriority,
   onUpdateDeadline,
   onUpdateTags,
+  onArchive,
   accentColor,
 }: {
   task: Task;
@@ -41,6 +43,7 @@ export default function TaskCard({
   onUpdatePriority: (p: Priority) => void;
   onUpdateDeadline: (d: number | null) => void;
   onUpdateTags: (tags: string[]) => void;
+  onArchive: () => void;
   accentColor?: string;
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -58,6 +61,7 @@ export default function TaskCard({
 
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [subtasksVersion, setSubtasksVersion] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
 
   const priorityStyles: Record<Priority, string> = {
     high: "text-red-400 bg-red-950/30 border-red-900/30",
@@ -70,9 +74,15 @@ export default function TaskCard({
 
   const elevated = reminderOpen || isEditingTags || isEditingDate || isEditingTitle;
 
-  // Fetch subtasks
+  // Fetch subtasks with cleanup to prevent memory leaks
   useEffect(() => {
-    tauri.get_subtasks(task.id).then(setSubtasks).catch(console.error);
+    let mounted = true;
+    tauri.get_subtasks(task.id)
+      .then((data) => {
+        if (mounted) setSubtasks(data);
+      })
+      .catch(console.error);
+    return () => { mounted = false; };
   }, [task.id, subtasksVersion]);
 
   const refreshSubtasks = () => setSubtasksVersion((v) => v + 1);
@@ -167,21 +177,92 @@ export default function TaskCard({
   return (
     <motion.div
       ref={setCardRefEl as any}
-      layoutId={task.id}
+      layout
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.4, ease: "easeOut" } }}
       className={[
-        "group bg-[#1e293b] hover:bg-[#283548] p-3 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all relative shadow-sm",
-        "overflow-visible",
+        "group bg-[#1e293b] hover:bg-[#283548] p-3 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-colors relative shadow-sm card-glow",
         elevated ? "z-50" : "z-0",
+        celebrating ? "animate-success-flash" : "",
       ].join(" ")}
+      style={{ overflow: "visible" }}
     >
-      <div className="flex items-start gap-3">
-        <button
-          onClick={onComplete}
-          className="mt-0.5 w-5 h-5 rounded-full border border-slate-500 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-500/20 transition-all shrink-0 text-slate-900"
-          title="Complete"
-        >
-          <Check size={12} />
-        </button>
+      <ConfettiBurst active={celebrating} />
+      <div className="flex items-start gap-3" style={{ overflow: "visible" }}>
+        {/* Enhanced Fire Checkbox */}
+        <div className="relative" style={{ overflow: "visible" }}>
+          <motion.button
+            onClick={() => {
+              if (celebrating) return;
+              setCelebrating(true);
+              setTimeout(() => {
+                onComplete();
+              }, 900);
+              setTimeout(() => setCelebrating(false), 1000);
+            }}
+            className="relative w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0"
+            style={{
+              borderColor: celebrating ? "#f97316" : "#64748b",
+              backgroundColor: celebrating ? "#f97316" : "transparent",
+              overflow: "visible",
+            }}
+            whileHover={{ scale: 1.2, borderColor: "#f97316" }}
+            whileTap={{ scale: 0.85 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            title="Complete"
+          >
+            {/* Fire Ripple effect */}
+            <AnimatePresence>
+              {celebrating && (
+                <>
+                  <motion.div
+                    className="absolute rounded-full bg-orange-400"
+                    style={{ inset: -4 }}
+                    initial={{ scale: 0.5, opacity: 0.8 }}
+                    animate={{ scale: 3, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.7, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute rounded-full bg-amber-300"
+                    style={{ inset: -2 }}
+                    initial={{ scale: 0.5, opacity: 0.6 }}
+                    animate={{ scale: 2.5, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+                  />
+                </>
+              )}
+            </AnimatePresence>
+
+            {/* Fire Icon */}
+            <AnimatePresence>
+              {celebrating && (
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1.2, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 12, delay: 0.05 }}
+                  className="relative z-10"
+                >
+                  <Flame size={16} className="text-white drop-shadow-lg" fill="white" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Default state */}
+            {!celebrating && (
+              <motion.div
+                className="text-slate-500"
+                initial={{ opacity: 0.4 }}
+                whileHover={{ opacity: 1, scale: 1.1 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Flame size={14} />
+              </motion.div>
+            )}
+          </motion.button>
+        </div>
 
         <div className="flex-1 min-w-0">
           {isEditingTitle ? (
@@ -393,13 +474,9 @@ export default function TaskCard({
           )}
 
           <button
-            onClick={async (e) => {
+            onClick={(e) => {
               e.stopPropagation();
-              try {
-                await tauri.archive_task(task.id);
-              } catch (err) {
-                console.error("Archive failed:", err);
-              }
+              onArchive();
             }}
             className="text-slate-500 hover:text-amber-400 transition-all p-1"
             title="Архивировать"
@@ -410,7 +487,9 @@ export default function TaskCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDelete();
+              if (window.confirm("Удалить задачу? Это действие нельзя отменить.")) {
+                onDelete();
+              }
             }}
             className="text-slate-500 hover:text-red-400 transition-all p-1"
             title="Delete"

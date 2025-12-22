@@ -73,7 +73,13 @@ function ItemMenu({
                     <div className="border-t border-slate-700/50 my-1" />
 
                     <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(); setIsOpen(false); }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm("Удалить? Это действие нельзя отменить.")) {
+                                onDelete();
+                            }
+                            setIsOpen(false);
+                        }}
                         className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
                     >
                         <Trash2 size={14} /> Удалить
@@ -447,12 +453,16 @@ export default function NotesView({ projects, addProject, deleteProject, editPro
         setIsAddingRootFolder(false);
     };
 
+    // Ref to track if initial expansion was done (prevents stale closure)
+    const initialExpandDoneRef = useRef(false);
+
     // Expand all on first render if there are folders
     useEffect(() => {
-        if (rootFolders.length > 0 && expandedFolders.size === 0) {
+        if (!initialExpandDoneRef.current && rootFolders.length > 0) {
             setExpandedFolders(new Set(rootFolders.map((f) => f.id)));
+            initialExpandDoneRef.current = true;
         }
-    }, [rootFolders.length]);
+    }, [rootFolders]);
 
     return (
         <div className="h-full overflow-y-auto">

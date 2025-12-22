@@ -334,14 +334,52 @@ impl AppDatabase {
             commit_migration(4)?;
         }
 
-        // Migration 5: Add detailed loan fields to debts
+        // Migration 5: Add detailed loan fields to debts (with existence checks)
         if current_version < 5 {
-            conn.execute_batch(
-                "ALTER TABLE debts ADD COLUMN start_date INTEGER;
-                 ALTER TABLE debts ADD COLUMN payment_day INTEGER;
-                 ALTER TABLE debts ADD COLUMN initial_amount REAL;",
-            )
-            .map_err(|e| e.to_string())?;
+            // Check and add start_date column
+            let has_start_date = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('debts') WHERE name='start_date'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_start_date {
+                conn.execute("ALTER TABLE debts ADD COLUMN start_date INTEGER", [])
+                    .map_err(|e| e.to_string())?;
+            }
+
+            // Check and add payment_day column
+            let has_payment_day = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('debts') WHERE name='payment_day'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_payment_day {
+                conn.execute("ALTER TABLE debts ADD COLUMN payment_day INTEGER", [])
+                    .map_err(|e| e.to_string())?;
+            }
+
+            // Check and add initial_amount column
+            let has_initial_amount = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('debts') WHERE name='initial_amount'",
+                    [],
+                    |row| row.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !has_initial_amount {
+                conn.execute("ALTER TABLE debts ADD COLUMN initial_amount REAL", [])
+                    .map_err(|e| e.to_string())?;
+            }
 
             commit_migration(5)?;
         }

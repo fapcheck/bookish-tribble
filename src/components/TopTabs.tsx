@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, ListChecks, Settings, StickyNote, Wallet } from "lucide-react";
+import { Calendar, Flame, ListChecks, Settings, StickyNote, Wallet } from "lucide-react";
 import type { View } from "../types/ui";
 import ExportBackupButton from "./ExportBackupButton";
 import ImportBackupButton from "./ImportBackupButton";
@@ -7,9 +7,11 @@ import ImportBackupButton from "./ImportBackupButton";
 export default function TopTabs({
   view,
   setView,
+  streak = 0,
 }: {
   view: View;
   setView: (v: View) => void;
+  streak?: number;
 }) {
   // Focus is a special full-screen mode; don't show tabs there.
   if (view === "focus") return null;
@@ -49,9 +51,20 @@ export default function TopTabs({
         />
       </div>
 
-      <div className="hidden md:flex items-center gap-1">
-        <ImportBackupButton />
-        <ExportBackupButton />
+      <div className="flex items-center gap-3">
+        {/* Streak Flame Indicator */}
+        {streak > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-xl">
+            <Flame size={18} className="text-orange-400 animate-flame" />
+            <span className="text-sm font-bold text-orange-300">{streak}</span>
+            <span className="text-xs text-orange-400/70 hidden md:inline">день</span>
+          </div>
+        )}
+
+        <div className="hidden md:flex items-center gap-1">
+          <ImportBackupButton />
+          <ExportBackupButton />
+        </div>
       </div>
     </header>
   );

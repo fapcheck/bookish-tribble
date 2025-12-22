@@ -247,7 +247,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                                     {t.is_expense ? '-' : '+'}₽{t.amount.toLocaleString()}
                                                 </div>
                                                 <button
-                                                    onClick={() => deleteTransaction(t.id)}
+                                                    onClick={() => {
+                                                        if (window.confirm("Удалить операцию? Это действие нельзя отменить.")) {
+                                                            deleteTransaction(t.id);
+                                                        }
+                                                    }}
                                                     className="p-2 text-white/20 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                                 >
                                                     <Trash2 size={16} />
@@ -366,7 +370,11 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                                     )}
 
                                                     <button
-                                                        onClick={() => deleteDebt(d.id)}
+                                                        onClick={() => {
+                                                            if (window.confirm("Удалить долг? Это действие нельзя отменить.")) {
+                                                                deleteDebt(d.id);
+                                                            }
+                                                        }}
                                                         className="p-2 text-white/20 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                                     >
                                                         <Trash2 size={16} />

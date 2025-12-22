@@ -661,8 +661,6 @@ pub fn run() {
                     get_stats,
                     start_focus_session,
                     complete_focus_session,
-                    start_focus_session,
-                    complete_focus_session,
                     cancel_focus_session,
                     // Finance
                     get_finance_summary,

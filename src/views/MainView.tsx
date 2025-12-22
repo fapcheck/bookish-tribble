@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Coffee, CornerDownLeft, Flame, Folder, FolderPlus, Inbox, Layers, Play, Plus, Search, Sparkles, Zap, X } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { Coffee, CornerDownLeft, Folder, FolderPlus, Inbox, Layers, Plus, Search, Sparkles, Zap, X } from "lucide-react";
 import type { Priority } from "../lib/tauri";
 import type { Project, Task } from "../hooks/useDatabase";
 import type { TaskFilter } from "../lib/tauri";
@@ -7,7 +8,7 @@ import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
 import TrelloColumn from "../components/TrelloColumn";
 
-import { sortTasksForFocus } from "../utils/tasks";
+
 import { parseNaturalLanguage } from "../utils/naturalLanguage";
 
 export default function MainView(props: {
@@ -29,15 +30,16 @@ export default function MainView(props: {
     projectId?: string,
     deadline?: number,
     tags?: string[]
-  ) => Promise<any>;
+  ) => Promise<Task>;
   editTaskTitle: (id: string, title: string) => Promise<void>;
   updateTaskPriority: (id: string, priority: Priority) => Promise<void>;
   updateTaskDeadline: (id: string, deadline: number | null) => Promise<void>;
   updateTaskStatus: (id: string, status: "todo" | "doing" | "done") => Promise<void>;
   updateTaskTags: (id: string, tags: string[]) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  archiveTask: (id: string) => Promise<void>;
 
-  addProject: (name: string, color: string, priority: Priority, parentId?: string | null, isFolder?: boolean) => Promise<any>;
+  addProject: (name: string, color: string, priority: Priority, parentId?: string | null, isFolder?: boolean) => Promise<Project>;
   editProject: (id: string, name: string) => Promise<void>;
   updateProjectPriority: (id: string, priority: Priority) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -61,6 +63,7 @@ export default function MainView(props: {
     updateTaskStatus,
     updateTaskTags,
     deleteTask,
+    archiveTask,
 
     addProject,
     editProject,
@@ -138,15 +141,6 @@ export default function MainView(props: {
     // In 'all' view, only show projects that have visible tasks (avoid empty columns)
     return projects.filter((p) => displayedTasks.some((t) => t.project_id === p.id));
   }, [projects, filterProject, displayedTasks]);
-
-  const focusQueue = useMemo(() => {
-    let queue = tasks.filter((t) => t.status !== "done");
-    if (filterProject !== "all") {
-      if (filterProject === "inbox") queue = queue.filter((t) => !t.project_id);
-      else queue = queue.filter((t) => t.project_id === filterProject);
-    }
-    return sortTasksForFocus(queue);
-  }, [tasks, filterProject]);
 
 
 
@@ -362,28 +356,103 @@ export default function MainView(props: {
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6">
         <div className="max-w-[1600px] mx-auto pb-20 space-y-4 md:space-y-8">
-          {focusQueue.length > 0 && (
-            <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 rounded-2xl border border-indigo-500/20 p-4 md:p-6 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
-                  <Flame size={14} /> Следующая задача
-                </div>
-                <h2 className="text-xl md:text-2xl font-bold text-white mb-1 line-clamp-1">{focusQueue[0].title}</h2>
-                <p className="text-slate-500 text-xs md:text-sm">и ещё {Math.max(0, focusQueue.length - 1)} в очереди</p>
-              </div>
-              <button
-                onClick={onStartFocus}
-                className="px-4 md:px-6 py-2 md:py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-sm md:text-base shrink-0"
-              >
-                <Play size={16} className="md:w-[18px] md:h-[18px]" /> Фокус
-              </button>
-            </div>
-          )}
+          {/* Priority Focus Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+            {/* Urgent Focus - High Priority */}
+            {(() => {
+              const urgentTasks = tasks.filter(t => t.priority === "high" && t.status !== "done" && !t.is_archived);
+              return (
+                <button
+                  onClick={() => {
+                    props.setFilterPriority("high");
+                    onStartFocus();
+                  }}
+                  disabled={urgentTasks.length === 0}
+                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 via-orange-600/20 to-amber-600/10 border border-red-500/30 rounded-2xl" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-red-500/30 flex items-center justify-center">
+                        <Zap size={16} className="text-red-400" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-red-400">Срочный</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Urgent Focus</h3>
+                    <p className="text-sm text-red-300/70">{urgentTasks.length} задач</p>
+                  </div>
+                </button>
+              );
+            })()}
+
+            {/* Normal Focus - Normal Priority */}
+            {(() => {
+              const normalTasks = tasks.filter(t => t.priority === "normal" && t.status !== "done" && !t.is_archived);
+              return (
+                <button
+                  onClick={() => {
+                    props.setFilterPriority("normal");
+                    onStartFocus();
+                  }}
+                  disabled={normalTasks.length === 0}
+                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-violet-600/10 border border-indigo-500/30 rounded-2xl" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/30 flex items-center justify-center">
+                        <Sparkles size={16} className="text-indigo-400" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Обычный</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Normal Focus</h3>
+                    <p className="text-sm text-indigo-300/70">{normalTasks.length} задач</p>
+                  </div>
+                </button>
+              );
+            })()}
+
+            {/* Deep Focus - Low Priority */}
+            {(() => {
+              const deepTasks = tasks.filter(t => t.priority === "low" && t.status !== "done" && !t.is_archived);
+              return (
+                <button
+                  onClick={() => {
+                    props.setFilterPriority("low");
+                    onStartFocus();
+                  }}
+                  disabled={deepTasks.length === 0}
+                  className="group relative overflow-hidden rounded-2xl p-4 md:p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-teal-600/30 via-emerald-600/20 to-green-600/10 border border-teal-500/30 rounded-2xl" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl" />
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-teal-500/30 flex items-center justify-center">
+                        <Coffee size={16} className="text-teal-400" />
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-teal-400">Глубокий</span>
+                    </div>
+                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Deep Focus</h3>
+                    <p className="text-sm text-teal-300/70">{deepTasks.length} задач</p>
+                  </div>
+                </button>
+              );
+            })()}
+          </div>
 
           <div className="flex flex-wrap gap-4 md:gap-6 items-start [&>*]:flex-1 [&>*]:min-w-full md:[&>*]:min-w-[350px] [&>*]:max-w-full">
             {(filterProject === "all" || filterProject === "inbox") && (
               <TrelloColumn title="Входящие" count={inboxTasks.length} color="#94a3b8">
-                <div className="space-y-2">
+                <AnimatePresence mode="popLayout">
                   {inboxTasks.map((task) => (
                     <TaskCard
                       key={task.id}
@@ -394,9 +463,10 @@ export default function MainView(props: {
                       onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                       onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
                       onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
+                      onArchive={() => archiveTask(task.id)}
                     />
                   ))}
-                </div>
+                </AnimatePresence>
 
                 <AddTaskForm
                   projectId="inbox"
@@ -435,7 +505,7 @@ export default function MainView(props: {
                   onDelete={() => deleteProject(project.id)}
                   onEditName={(name) => editProject(project.id, name)}
                 >
-                  <div className="space-y-2">
+                  <AnimatePresence mode="popLayout">
                     {projTasks.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -447,9 +517,10 @@ export default function MainView(props: {
                         onUpdatePriority={(p) => updateTaskPriority(task.id, p)}
                         onUpdateDeadline={(d) => updateTaskDeadline(task.id, d)}
                         onUpdateTags={(tags) => updateTaskTags(task.id, tags)}
+                        onArchive={() => archiveTask(task.id)}
                       />
                     ))}
-                  </div>
+                  </AnimatePresence>
 
                   <AddTaskForm
                     projectId={project.id}

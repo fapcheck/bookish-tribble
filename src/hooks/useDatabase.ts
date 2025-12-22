@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import * as tauri from "../lib/tauri";
+import logger from "../lib/logger";
 
 export type Priority = tauri.Priority;
 export type Status = tauri.Status;
@@ -55,7 +56,7 @@ export function useDatabase() {
     setTimeout(() => {
       reloadScheduledRef.current = false;
       if (!mountedRef.current) return;
-      loadData().catch((e) => console.error("Reload failed:", e));
+      loadData().catch((e) => logger.error("Reload failed", e));
     }, 50);
   }, [loadData]);
 
@@ -69,7 +70,7 @@ export function useDatabase() {
         await loadData();
         unlisten = await listen<DataChanged>("data:changed", () => scheduleReload());
       } catch (e) {
-        console.error("Startup failed:", e);
+        logger.error("Startup failed", e);
       }
     })();
 
@@ -212,6 +213,22 @@ export function useDatabase() {
     [scheduleReload]
   );
 
+  const archiveTask = useCallback(
+    async (id: string) => {
+      await tauri.archive_task(id);
+      scheduleReload();
+    },
+    [scheduleReload]
+  );
+
+  const unarchiveTask = useCallback(
+    async (id: string) => {
+      await tauri.unarchive_task(id);
+      scheduleReload();
+    },
+    [scheduleReload]
+  );
+
   const toggleWindow = useCallback(async () => {
     await tauri.toggle_window();
   }, []);
@@ -240,7 +257,7 @@ export function useDatabase() {
       const data = await tauri.get_finance_summary();
       if (mountedRef.current) setFinance(data);
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to refresh finance", e);
     }
   }, []);
 
@@ -249,7 +266,7 @@ export function useDatabase() {
       await tauri.add_transaction(amount, category, date, isExpense, description);
       refreshFinance();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to add transaction", e);
     }
   }, [refreshFinance]);
 
@@ -258,7 +275,7 @@ export function useDatabase() {
       await tauri.delete_transaction(id);
       refreshFinance();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to delete transaction", e);
     }
   }, [refreshFinance]);
 
@@ -276,7 +293,7 @@ export function useDatabase() {
       await tauri.add_debt(person, amount, isOwedByMe, dueDate, startDate, paymentDay, initialAmount, currency);
       refreshFinance();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to add debt", e);
     }
   }, [refreshFinance]);
 
@@ -285,7 +302,7 @@ export function useDatabase() {
       await tauri.pay_debt(id);
       refreshFinance();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to pay debt", e);
     }
   }, [refreshFinance]);
 
@@ -294,7 +311,7 @@ export function useDatabase() {
       await tauri.delete_debt(id);
       refreshFinance();
     } catch (e) {
-      console.error(e);
+      logger.error("Failed to delete debt", e);
     }
   }, [refreshFinance]);
 
@@ -320,6 +337,8 @@ export function useDatabase() {
     updateTaskTags,
     updateTaskRepeat,
     deleteTask,
+    archiveTask,
+    unarchiveTask,
 
     toggleWindow,
     minimizeWindow,
