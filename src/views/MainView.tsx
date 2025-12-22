@@ -456,20 +456,11 @@ export default function MainView(props: {
                   isActive={addingTaskToProject === "inbox"}
                   onOpen={() => {
                     setAddingTaskToProject("inbox");
-                    setNewTaskPriority("normal");
-                    setNewTaskDeadline("");
-                    setNewTaskTags("");
                   }}
                   onClose={() => setAddingTaskToProject(null)}
                   onSubmit={handleColumnAddTask}
                   title={newTaskTitle}
                   setTitle={setNewTaskTitle}
-                  priority={newTaskPriority}
-                  setPriority={setNewTaskPriority}
-                  deadline={newTaskDeadline}
-                  setDeadline={setNewTaskDeadline}
-                  tags={newTaskTags}
-                  setTags={setNewTaskTags}
                 />
               </TrelloColumn>
             )}
@@ -511,20 +502,11 @@ export default function MainView(props: {
                     isActive={addingTaskToProject === project.id}
                     onOpen={() => {
                       setAddingTaskToProject(project.id);
-                      setNewTaskPriority("normal");
-                      setNewTaskDeadline("");
-                      setNewTaskTags("");
                     }}
                     onClose={() => setAddingTaskToProject(null)}
                     onSubmit={handleColumnAddTask}
                     title={newTaskTitle}
                     setTitle={setNewTaskTitle}
-                    priority={newTaskPriority}
-                    setPriority={setNewTaskPriority}
-                    deadline={newTaskDeadline}
-                    setDeadline={setNewTaskDeadline}
-                    tags={newTaskTags}
-                    setTags={setNewTaskTags}
                   />
                 </TrelloColumn>
               );
