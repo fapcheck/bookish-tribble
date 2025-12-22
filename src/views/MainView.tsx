@@ -6,7 +6,6 @@ import type { Project, Task } from "../hooks/useDatabase";
 import type { TaskFilter } from "../lib/tauri";
 import AddTaskForm from "../components/AddTaskForm";
 import TaskCard from "../components/TaskCard";
-import Things3TaskRow from "../components/Things3TaskRow";
 import TrelloColumn from "../components/TrelloColumn";
 
 
