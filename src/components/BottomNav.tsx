@@ -13,7 +13,7 @@ export default function BottomNav({
     if (view === "focus") return null;
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#020617]/90 backdrop-blur-xl border-t border-white/5 pb-safe pb-8 pt-2 px-6 flex justify-between items-center z-50">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#020617]/90 backdrop-blur-xl border-t border-white/5 pb-safe pb-10 pt-3 px-6 flex justify-between items-center z-50">
             <NavButton
                 active={view === "main"}
                 onClick={() => setView("main")}

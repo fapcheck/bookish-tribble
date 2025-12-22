@@ -202,34 +202,34 @@ export default function MainView(props: {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 py-3 border-b border-white/5 flex items-center gap-3 overflow-x-auto bg-[#020617] no-scrollbar">
+      <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 overflow-x-auto bg-[#020617] no-scrollbar">
         {/* Project filters */}
         <button
           onClick={() => { setFilterProject("all"); setTaskFilter("all"); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shrink-0 ${filterProject === "all" && taskFilter === "all"
+          className={`px-5 py-3 rounded-2xl text-[15px] font-medium transition-colors flex items-center gap-2.5 shrink-0 ${filterProject === "all" && taskFilter === "all"
             ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
             : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
         >
-          <Layers size={16} /> Всё
+          <Layers size={18} /> Всё
         </button>
 
         <button
           onClick={() => { setFilterProject("inbox"); setTaskFilter("all"); }}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shrink-0 ${filterProject === "inbox" && taskFilter === "all"
+          className={`px-5 py-3 rounded-2xl text-[15px] font-medium transition-colors flex items-center gap-2.5 shrink-0 ${filterProject === "inbox" && taskFilter === "all"
             ? "bg-slate-700 text-white shadow-lg shadow-black/20"
             : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}
         >
-          <Inbox size={16} /> Входящие
+          <Inbox size={18} /> Входящие
         </button>
 
         {/* Folder separator for projects */}
         {projects.length > 0 && (
           <>
-            <div className="w-px h-6 bg-slate-800 mx-1 shrink-0" />
+            <div className="w-px h-8 bg-slate-800 mx-1 shrink-0" />
             <div className="flex items-center gap-1 text-slate-600 shrink-0">
-              <Folder size={16} />
+              <Folder size={18} />
             </div>
           </>
         )}
@@ -238,10 +238,10 @@ export default function MainView(props: {
           <button
             key={p.id}
             onClick={() => { setFilterProject(p.id); setTaskFilter("all"); }}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-white hover:bg-slate-800"
+            className={`px-5 py-3 rounded-2xl text-[15px] font-medium transition-colors flex items-center gap-2.5 whitespace-nowrap shrink-0 ${filterProject === p.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full ring-2 ring-white/10" style={{ backgroundColor: p.color }} />
+            <div className="w-3 h-3 rounded-full ring-2 ring-white/10" style={{ backgroundColor: p.color }} />
             {p.name}
           </button>
         ))}
