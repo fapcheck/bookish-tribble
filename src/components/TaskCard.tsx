@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Archive, Bell, Calendar, Clock, Flame, Pencil, Tag, Trash2, Zap } from "lucide-react";
+import { Archive, Bell, Calendar, Check, Clock, Pencil, Tag, Trash2, Zap } from "lucide-react";
 import type { Priority } from "../lib/tauri";
 import type { Task } from "../hooks/useDatabase";
 import type { Subtask } from "../lib/tauri";
@@ -194,7 +194,7 @@ export default function TaskCard({
     >
       <ConfettiBurst active={celebrating} />
       <div className="flex items-start gap-3" style={{ overflow: "visible" }}>
-        {/* Enhanced Fire Checkbox */}
+        {/* Checkbox - Simple circle on mobile, fire on desktop */}
         <div className="relative" style={{ overflow: "visible" }}>
           <motion.button
             onClick={() => {
@@ -205,66 +205,29 @@ export default function TaskCard({
               }, 900);
               setTimeout(() => setCelebrating(false), 1000);
             }}
-            className="relative w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0"
+            className="relative w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0"
             style={{
-              borderColor: celebrating ? "#f97316" : "#64748b",
-              backgroundColor: celebrating ? "#f97316" : "transparent",
+              borderColor: celebrating ? "#007AFF" : "#64748b",
+              backgroundColor: celebrating ? "#007AFF" : "transparent",
               overflow: "visible",
             }}
-            whileHover={{ scale: 1.2, borderColor: "#f97316" }}
+            whileHover={{ scale: 1.1, borderColor: "#007AFF" }}
             whileTap={{ scale: 0.85 }}
             transition={{ type: "spring", stiffness: 400, damping: 15 }}
             title="Complete"
           >
-            {/* Fire Ripple effect */}
-            <AnimatePresence>
-              {celebrating && (
-                <>
-                  <motion.div
-                    className="absolute rounded-full bg-orange-400"
-                    style={{ inset: -4 }}
-                    initial={{ scale: 0.5, opacity: 0.8 }}
-                    animate={{ scale: 3, opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.7, ease: "easeOut" }}
-                  />
-                  <motion.div
-                    className="absolute rounded-full bg-amber-300"
-                    style={{ inset: -2 }}
-                    initial={{ scale: 0.5, opacity: 0.6 }}
-                    animate={{ scale: 2.5, opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
-                  />
-                </>
-              )}
-            </AnimatePresence>
-
-            {/* Fire Icon */}
+            {/* Checkmark on complete */}
             <AnimatePresence>
               {celebrating && (
                 <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1.2, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 12, delay: 0.05 }}
-                  className="relative z-10"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-white"
                 >
-                  <Flame size={16} className="text-white drop-shadow-lg" fill="white" />
+                  <Check size={14} strokeWidth={3} />
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Default state */}
-            {!celebrating && (
-              <motion.div
-                className="text-slate-500"
-                initial={{ opacity: 0.4 }}
-                whileHover={{ opacity: 1, scale: 1.1 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Flame size={14} />
-              </motion.div>
-            )}
           </motion.button>
         </div>
 
@@ -289,10 +252,36 @@ export default function TaskCard({
               }}
             />
           ) : (
-            <h4 className="text-sm font-medium leading-snug mb-1.5 text-slate-200 break-words">{task.title}</h4>
+            <h4 className="text-[15px] font-medium leading-snug mb-1 text-white break-words">{task.title}</h4>
           )}
 
-          <div className="flex flex-wrap gap-2 items-center mt-2">
+          {/* Mobile: Minimal deadline tag only */}
+          <div className="md:hidden flex items-center gap-2 mt-1">
+            {task.deadline && (
+              <span
+                className="text-xs font-medium"
+                style={{
+                  color:
+                    new Date(task.deadline) < new Date() && task.status !== "done"
+                      ? "#EF4444"
+                      : new Date(task.deadline).toDateString() === new Date().toDateString()
+                        ? "#EF4444"
+                        : "#94A3B8",
+                }}
+              >
+                {formatDeadlineChip(task.deadline)}
+              </span>
+            )}
+            {accentColor && (
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: accentColor }}
+              />
+            )}
+          </div>
+
+          {/* Desktop: Full buttons/tags */}
+          <div className="hidden md:flex flex-wrap gap-2 items-center mt-2">
             <button
               onClick={(e) => {
                 e.stopPropagation();
