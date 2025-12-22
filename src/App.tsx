@@ -7,6 +7,9 @@ import TopTabs from "./components/TopTabs";
 import BottomNav from "./components/BottomNav";
 import ReminderToast from "./components/ReminderToast";
 
+import MobileFAB from "./components/MobileFAB";
+import MobileAddTaskModal from "./components/MobileAddTaskModal";
+
 import MainView from "./views/MainView";
 import CalendarView from "./views/CalendarView";
 import StatsView from "./views/StatsView";
@@ -53,6 +56,7 @@ export default function App() {
   } = useDatabase();
 
   const [view, setView] = useState<View>("main");
+  const [showMobileAdd, setShowMobileAdd] = useState(false);
 
   const [filterPriority, setFilterPriority] = useState<"all" | Priority>("all");
   const [filterProject, setFilterProject] = useState<"all" | "inbox" | string>("all");
@@ -143,6 +147,19 @@ export default function App() {
       </div>
 
       <BottomNav view={view} setView={setView} />
+
+      {/* Mobile Quick Add */}
+      {view === "main" && (
+        <MobileFAB onClick={() => setShowMobileAdd(true)} />
+      )}
+
+      <MobileAddTaskModal
+        isOpen={showMobileAdd}
+        onClose={() => setShowMobileAdd(false)}
+        onAdd={async (title, priority, deadline, tags) => {
+          await addTask(title, priority, undefined, undefined, deadline, tags);
+        }}
+      />
     </div>
   );
 }

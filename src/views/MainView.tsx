@@ -328,7 +328,7 @@ export default function MainView(props: {
       </div>
 
       {/* Quick Add Bar */}
-      <div className="px-4 md:px-6 py-3 md:py-4 bg-[#0f172a]/50 border-b border-white/5">
+      <div className="hidden md:block px-4 md:px-6 py-3 md:py-4 bg-[#0f172a]/50 border-b border-white/5">
         <div className="max-w-[1600px] mx-auto">
           <form onSubmit={handleQuickAdd} className="relative flex items-center group">
             <div className="absolute left-3 md:left-4 text-slate-500 pointer-events-none">
@@ -383,7 +383,7 @@ export default function MainView(props: {
           {/* Focus filters */}
           <div className="md:hidden w-px h-4 bg-slate-800 mx-1 shrink-0" />
           <button
-            onClick={() => { setFilterPriority("high"); onStartFocus(); }}
+            onClick={() => { props.setFilterPriority("high"); onStartFocus(); }}
             className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "high"
               ? "bg-red-500/20 text-red-400 border border-red-500/30"
               : "text-slate-500 hover:text-red-400 hover:bg-slate-900"
@@ -392,7 +392,7 @@ export default function MainView(props: {
             <Zap size={12} /> Срочно
           </button>
           <button
-            onClick={() => { setFilterPriority("normal"); onStartFocus(); }}
+            onClick={() => { props.setFilterPriority("normal"); onStartFocus(); }}
             className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "normal"
               ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
               : "text-slate-500 hover:text-indigo-400 hover:bg-slate-900"
@@ -401,7 +401,7 @@ export default function MainView(props: {
             <Sparkles size={12} /> Обычный
           </button>
           <button
-            onClick={() => { setFilterPriority("low"); onStartFocus(); }}
+            onClick={() => { props.setFilterPriority("low"); onStartFocus(); }}
             className={`hidden md:flex flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${filterPriority === "low"
               ? "bg-teal-500/20 text-teal-400 border border-teal-500/30"
               : "text-slate-500 hover:text-teal-400 hover:bg-slate-900"
