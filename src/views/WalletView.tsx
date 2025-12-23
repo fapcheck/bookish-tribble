@@ -29,16 +29,23 @@ export const WalletView: React.FC<WalletViewProps> = ({
     finance,
     addTransaction,
     deleteTransaction,
+    addDebt,
     payDebt,
     deleteDebt
 }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'debts'>('overview');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddDebtModal, setShowAddDebtModal] = useState(false);
 
-    // Form state
+    // Transaction form state
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [isExpense, setIsExpense] = useState(true);
+
+    // Debt form state
+    const [debtPerson, setDebtPerson] = useState('');
+    const [debtAmount, setDebtAmount] = useState('');
+    const [debtIsOwe, setDebtIsOwe] = useState(true);
 
     // Stats
     const totalBalance = useMemo(() => {
@@ -69,6 +76,14 @@ export const WalletView: React.FC<WalletViewProps> = ({
         setAmount('');
         setCategory('');
         setShowAddModal(false);
+    };
+
+    const handleAddDebt = async () => {
+        if (!debtPerson || !debtAmount) return;
+        await addDebt(debtPerson, parseFloat(debtAmount), debtIsOwe, null, null, null, parseFloat(debtAmount));
+        setDebtPerson('');
+        setDebtAmount('');
+        setShowAddDebtModal(false);
     };
 
     return (
@@ -120,7 +135,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
                 {activeTab === 'overview' ? (
                     <>
-                        {/* Add Button */}
+                        {/* Add Transaction Button */}
                         <button
                             onClick={() => setShowAddModal(true)}
                             className="w-full bg-[#007AFF] text-white py-3 rounded-xl font-medium mb-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
@@ -180,6 +195,15 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 <p className="text-lg font-semibold text-green-400">₽{owedToMeTotal.toLocaleString()}</p>
                             </div>
                         </div>
+
+                        {/* Add Debt Button */}
+                        <button
+                            onClick={() => setShowAddDebtModal(true)}
+                            className="w-full bg-[#007AFF] text-white py-3 rounded-xl font-medium mb-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                        >
+                            <Plus size={18} />
+                            Add Debt
+                        </button>
 
                         {/* Debts List */}
                         <div className="space-y-1">
@@ -260,7 +284,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 </button>
                             </div>
 
-                            {/* Type Toggle */}
                             <div className="flex bg-white/5 rounded-xl p-1 mb-4">
                                 <button
                                     onClick={() => setIsExpense(true)}
@@ -278,7 +301,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 </button>
                             </div>
 
-                            {/* Amount */}
                             <input
                                 type="number"
                                 value={amount}
@@ -288,7 +310,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 autoFocus
                             />
 
-                            {/* Category */}
                             <input
                                 type="text"
                                 value={category}
@@ -303,6 +324,81 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 className="w-full bg-[#007AFF] disabled:opacity-30 text-white py-3 rounded-xl font-medium transition-all active:scale-[0.98]"
                             >
                                 Add
+                            </button>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Add Debt Modal */}
+            <AnimatePresence>
+                {showAddDebtModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowAddDebtModal(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                        />
+                        <motion.div
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="fixed bottom-0 left-0 right-0 bg-[#1c1c1e] rounded-t-2xl z-[101] p-4 pb-8 border-t border-white/10"
+                        >
+                            <div className="flex justify-center mb-3">
+                                <div className="w-10 h-1 bg-slate-600 rounded-full" />
+                            </div>
+
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-white">New Debt</h3>
+                                <button onClick={() => setShowAddDebtModal(false)} className="p-1.5 text-slate-500">
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="flex bg-white/5 rounded-xl p-1 mb-4">
+                                <button
+                                    onClick={() => setDebtIsOwe(true)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${debtIsOwe ? 'bg-red-500/20 text-red-400' : 'text-slate-400'
+                                        }`}
+                                >
+                                    I Owe
+                                </button>
+                                <button
+                                    onClick={() => setDebtIsOwe(false)}
+                                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!debtIsOwe ? 'bg-green-500/20 text-green-400' : 'text-slate-400'
+                                        }`}
+                                >
+                                    Owed to Me
+                                </button>
+                            </div>
+
+                            <input
+                                type="text"
+                                value={debtPerson}
+                                onChange={(e) => setDebtPerson(e.target.value)}
+                                placeholder="Person or company name"
+                                className="w-full bg-white/5 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none mb-4"
+                                autoFocus
+                            />
+
+                            <input
+                                type="number"
+                                value={debtAmount}
+                                onChange={(e) => setDebtAmount(e.target.value)}
+                                placeholder="Amount"
+                                className="w-full bg-white/5 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none mb-4"
+                            />
+
+                            <button
+                                onClick={handleAddDebt}
+                                disabled={!debtPerson || !debtAmount}
+                                className="w-full bg-[#007AFF] disabled:opacity-30 text-white py-3 rounded-xl font-medium transition-all active:scale-[0.98]"
+                            >
+                                Add Debt
                             </button>
                         </motion.div>
                     </>
