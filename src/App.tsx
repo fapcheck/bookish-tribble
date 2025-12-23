@@ -4,7 +4,8 @@ import type { Priority } from "./lib/tauri";
 import type { View } from "./types/ui";
 
 import TopTabs from "./components/TopTabs";
-import BottomNav from "./components/BottomNav";
+import MobileHeader from "./components/MobileHeader";
+import SwipeHandler from "./components/SwipeHandler";
 import ReminderToast from "./components/ReminderToast";
 
 import MobileFAB from "./components/MobileFAB";
@@ -124,73 +125,80 @@ export default function App() {
         currentView={view}
       />
 
-      <div className="flex-1 overflow-hidden pb-[70px] md:pb-0">
-        {view === "main" && (
-          <MainView
-            tasks={tasks}
-            projects={projects}
-            isLoaded={isLoaded}
-            filterPriority={filterPriority}
-            setFilterPriority={setFilterPriority}
-            filterProject={filterProject}
-            setFilterProject={setFilterProject}
-            showCompleted={showCompleted}
-            setShowCompleted={setShowCompleted}
-            addTask={addTask}
-            editTaskTitle={editTaskTitle}
-            updateTaskPriority={updateTaskPriority}
-            updateTaskDeadline={updateTaskDeadline}
-            updateTaskStatus={updateTaskStatus}
-            updateTaskTags={updateTaskTags}
-            deleteTask={deleteTask}
-            archiveTask={archiveTask}
-            addProject={addProject}
-            editProject={editProject}
-            updateProjectPriority={updateProjectPriority}
-            deleteProject={deleteProject}
-            onStartFocus={() => setView("focus")}
-            mobileSection={mobileSection}
-          />
-        )}
+      {/* Mobile Header */}
+      <MobileHeader
+        title={view === "main" ? (selectedProjectId ? projects.find(p => p.id === selectedProjectId)?.name ?? "Tasks" : mobileSection === "today" ? "Today" : mobileSection === "inbox" ? "Inbox" : mobileSection === "upcoming" ? "Upcoming" : mobileSection === "logbook" ? "Logbook" : "Tasks") : view === "calendar" ? "Calendar" : view === "notes" ? "Notes" : view === "wallet" ? "Finance" : view === "settings" ? "Settings" : "Tasks"}
+        onOpenSidebar={() => setSidebarOpen(true)}
+        view={view}
+      />
 
-        {view === "calendar" && <CalendarView tasks={tasks} />}
+      <SwipeHandler onSwipeRight={() => setSidebarOpen(true)}>
+        <div className="flex-1 overflow-hidden">
+          {view === "main" && (
+            <MainView
+              tasks={tasks}
+              projects={projects}
+              isLoaded={isLoaded}
+              filterPriority={filterPriority}
+              setFilterPriority={setFilterPriority}
+              filterProject={filterProject}
+              setFilterProject={setFilterProject}
+              showCompleted={showCompleted}
+              setShowCompleted={setShowCompleted}
+              addTask={addTask}
+              editTaskTitle={editTaskTitle}
+              updateTaskPriority={updateTaskPriority}
+              updateTaskDeadline={updateTaskDeadline}
+              updateTaskStatus={updateTaskStatus}
+              updateTaskTags={updateTaskTags}
+              deleteTask={deleteTask}
+              archiveTask={archiveTask}
+              addProject={addProject}
+              editProject={editProject}
+              updateProjectPriority={updateProjectPriority}
+              deleteProject={deleteProject}
+              onStartFocus={() => setView("focus")}
+              mobileSection={mobileSection}
+            />
+          )}
 
-        {view === "stats" && stats && <StatsView stats={stats} />}
+          {view === "calendar" && <CalendarView tasks={tasks} />}
 
-        {view === "settings" && settings && <SettingsView settings={settings} onSave={saveSettings} setView={setView} tasks={tasks} projects={projects} onImport={importData} />}
+          {view === "stats" && stats && <StatsView stats={stats} />}
 
-        {view === "review" && <WeeklyReviewView />}
+          {view === "settings" && settings && <SettingsView settings={settings} onSave={saveSettings} setView={setView} tasks={tasks} projects={projects} onImport={importData} />}
 
-        {view === "notes" && (
-          <NotesView
-            projects={projects}
-            addProject={addProject}
-            deleteProject={deleteProject}
-            editProject={editProject}
-          />
-        )}
+          {view === "review" && <WeeklyReviewView />}
 
-        {view === "wallet" && (
-          <WalletView
-            finance={finance}
-            addTransaction={addTransaction}
-            deleteTransaction={deleteTransaction}
-            addDebt={addDebt}
-            payDebt={payDebt}
-            deleteDebt={deleteDebt}
-          />
-        )}
+          {view === "notes" && (
+            <NotesView
+              projects={projects}
+              addProject={addProject}
+              deleteProject={deleteProject}
+              editProject={editProject}
+            />
+          )}
 
-        {view === "focus" && (
-          <FocusView
-            queue={focusQueue}
-            onBack={() => setView("main")}
-            onCompleteTask={(id) => updateTaskStatus(id, "done")}
-          />
-        )}
-      </div>
+          {view === "wallet" && (
+            <WalletView
+              finance={finance}
+              addTransaction={addTransaction}
+              deleteTransaction={deleteTransaction}
+              addDebt={addDebt}
+              payDebt={payDebt}
+              deleteDebt={deleteDebt}
+            />
+          )}
 
-      <BottomNav view={view} onOpenSidebar={() => setSidebarOpen(true)} />
+          {view === "focus" && (
+            <FocusView
+              queue={focusQueue}
+              onBack={() => setView("main")}
+              onCompleteTask={(id) => updateTaskStatus(id, "done")}
+            />
+          )}
+        </div>
+      </SwipeHandler>
 
       {/* Mobile Quick Add */}
       {view === "main" && (
