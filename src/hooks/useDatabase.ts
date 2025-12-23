@@ -264,7 +264,7 @@ export function useDatabase() {
   const addTransaction = useCallback(async (amount: number, category: string, date: number, isExpense: boolean, description?: string) => {
     try {
       await tauri.add_transaction(amount, category, date, isExpense, description);
-      refreshFinance();
+      await refreshFinance();
     } catch (e) {
       logger.error("Failed to add transaction", e);
     }
@@ -273,7 +273,7 @@ export function useDatabase() {
   const deleteTransaction = useCallback(async (id: string) => {
     try {
       await tauri.delete_transaction(id);
-      refreshFinance();
+      await refreshFinance();
     } catch (e) {
       logger.error("Failed to delete transaction", e);
     }
@@ -291,7 +291,7 @@ export function useDatabase() {
   ) => {
     try {
       await tauri.add_debt(person, amount, isOwedByMe, dueDate, startDate, paymentDay, initialAmount, currency);
-      refreshFinance();
+      await refreshFinance();
     } catch (e) {
       logger.error("Failed to add debt", e);
     }
@@ -300,7 +300,7 @@ export function useDatabase() {
   const payDebt = useCallback(async (id: string) => {
     try {
       await tauri.pay_debt(id);
-      refreshFinance();
+      await refreshFinance();
     } catch (e) {
       logger.error("Failed to pay debt", e);
     }
@@ -309,7 +309,7 @@ export function useDatabase() {
   const deleteDebt = useCallback(async (id: string) => {
     try {
       await tauri.delete_debt(id);
-      refreshFinance();
+      await refreshFinance();
     } catch (e) {
       logger.error("Failed to delete debt", e);
     }

@@ -45,6 +45,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
     // Debt form state
     const [debtPerson, setDebtPerson] = useState('');
     const [debtAmount, setDebtAmount] = useState('');
+    const [debtPaidAmount, setDebtPaidAmount] = useState('');
+    const [debtDueDate, setDebtDueDate] = useState('');
+    const [debtPaymentDay, setDebtPaymentDay] = useState('');
     const [debtIsOwe, setDebtIsOwe] = useState(true);
 
     // Stats
@@ -80,9 +83,19 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
     const handleAddDebt = async () => {
         if (!debtPerson || !debtAmount) return;
-        await addDebt(debtPerson, parseFloat(debtAmount), debtIsOwe, null, null, null, parseFloat(debtAmount));
+        const totalAmount = parseFloat(debtAmount);
+        const paidAmount = debtPaidAmount ? parseFloat(debtPaidAmount) : 0;
+        const remainingAmount = totalAmount - paidAmount;
+        const dueDate = debtDueDate ? new Date(debtDueDate).getTime() : null;
+        const paymentDay = debtPaymentDay ? parseInt(debtPaymentDay) : null;
+
+        await addDebt(debtPerson, remainingAmount, debtIsOwe, dueDate, Date.now(), paymentDay, totalAmount);
+
         setDebtPerson('');
         setDebtAmount('');
+        setDebtPaidAmount('');
+        setDebtDueDate('');
+        setDebtPaymentDay('');
         setShowAddDebtModal(false);
     };
 
@@ -381,17 +394,56 @@ export const WalletView: React.FC<WalletViewProps> = ({
                                 value={debtPerson}
                                 onChange={(e) => setDebtPerson(e.target.value)}
                                 placeholder="Person or company name"
-                                className="w-full bg-white/5 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none mb-4"
+                                className="w-full bg-white/5 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none mb-3"
                                 autoFocus
                             />
 
-                            <input
-                                type="number"
-                                value={debtAmount}
-                                onChange={(e) => setDebtAmount(e.target.value)}
-                                placeholder="Amount"
-                                className="w-full bg-white/5 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none mb-4"
-                            />
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 uppercase mb-1 block">Total Amount</label>
+                                    <input
+                                        type="number"
+                                        value={debtAmount}
+                                        onChange={(e) => setDebtAmount(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 uppercase mb-1 block">Already Paid</label>
+                                    <input
+                                        type="number"
+                                        value={debtPaidAmount}
+                                        onChange={(e) => setDebtPaidAmount(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 uppercase mb-1 block">Due Date</label>
+                                    <input
+                                        type="date"
+                                        value={debtDueDate}
+                                        onChange={(e) => setDebtDueDate(e.target.value)}
+                                        className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 uppercase mb-1 block">Payment Day</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="31"
+                                        value={debtPaymentDay}
+                                        onChange={(e) => setDebtPaymentDay(e.target.value)}
+                                        placeholder="e.g. 15"
+                                        className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 outline-none"
+                                    />
+                                </div>
+                            </div>
 
                             <button
                                 onClick={handleAddDebt}
