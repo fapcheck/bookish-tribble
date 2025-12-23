@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Folder, FolderPlus, FileText, Plus, X, ChevronRight, Trash2, Edit3 } from "lucide-react";
+import { Folder, FolderPlus, FileText, Plus, X, ChevronRight, Trash2 } from "lucide-react";
 import type { Project } from "../hooks/useDatabase";
 import type { Priority } from "../lib/tauri";
 
@@ -10,7 +10,7 @@ type NotesViewProps = {
     editProject: (id: string, name: string) => Promise<void>;
 };
 
-export default function NotesView({ projects, addProject, deleteProject, editProject }: NotesViewProps) {
+export default function NotesView({ projects, addProject, deleteProject }: NotesViewProps) {
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");

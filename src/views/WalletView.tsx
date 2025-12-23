@@ -29,7 +29,6 @@ export const WalletView: React.FC<WalletViewProps> = ({
     finance,
     addTransaction,
     deleteTransaction,
-    addDebt,
     payDebt,
     deleteDebt
 }) => {
